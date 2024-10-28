@@ -1,4 +1,6 @@
-﻿namespace StorkItmeServer.Model
+﻿using System.Reflection.Metadata;
+
+namespace StorkItmeServer.Model
 {
     public class StorkItme
     {
@@ -15,5 +17,9 @@
         public int Stork { get; set; }
 
         public string ImgUrl { get; set; }
+
+        public int UserGroupId { get; set; }
+
+        public UserGroup UserGroup { get; set; } = null!;
     }
 }

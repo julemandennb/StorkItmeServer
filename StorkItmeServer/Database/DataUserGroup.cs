@@ -14,6 +14,11 @@ namespace StorkItmeServer.Database
 
                 bu.HasMany(g => g.Users).WithMany(g => g.UserGroups);
 
+                bu.HasMany(e => e.StorkItmes)
+                .WithOne(e => e.UserGroup)
+                .HasForeignKey(e => e.Id)
+                .IsRequired(false);
+
             });
         }
     }

@@ -20,7 +20,7 @@ namespace StorkItmeServer.Database
 
             new DataUserGroup().ModelCreating(builder);
 
-
+            new DataStorkItme().ModelCreating(builder);
 
             builder.HasDefaultSchema("storkitmeserver");
 
