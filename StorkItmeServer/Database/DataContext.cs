@@ -18,6 +18,10 @@ namespace StorkItmeServer.Database
         {
             base.OnModelCreating(builder);
 
+            new DataUserGroup().ModelCreating(builder);
+
+
+
             builder.HasDefaultSchema("storkitmeserver");
 
         }
