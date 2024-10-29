@@ -1,6 +1,8 @@
 
 using AspNetCore.Identity.Extensions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
 using StorkItmeServer.Database;
 using StorkItmeServer.Model;
@@ -10,7 +12,7 @@ namespace StorkItmeServer
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -36,7 +38,11 @@ namespace StorkItmeServer
 
             builder.Services.AddAuthorization();
 
-            builder.Services.AddIdentityApiEndpoints<User>().AddEntityFrameworkStores<DataContext>();
+            builder.Services.AddIdentityApiEndpoints<User>()
+                .AddRoles<Role>()
+                .AddEntityFrameworkStores<DataContext>();
+
+
 
             var app = builder.Build();
 
@@ -57,6 +63,51 @@ namespace StorkItmeServer
 
 
             app.MapControllers();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var roleManger = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+
+                var roles = new[] { "Admin","Manager","Member","Read" };
+
+                foreach (var role in roles)
+                {
+                    if(! await roleManger.RoleExistsAsync(role))
+                        await roleManger.CreateAsync(new Role(role, role));
+                }
+
+            }
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var UserManger = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+                string email = builder.Configuration.GetSection("FirstAdminUser").GetValue<string>("email");
+
+                string pass = builder.Configuration.GetSection("FirstAdminUser").GetValue<string>("password");
+
+                if (email != null && pass != null)
+                {
+
+                    if (await UserManger.FindByEmailAsync(email) == null)
+                    {
+                        var user = new User();
+                        user.UserName = email;
+                        user.Email = email;
+
+                        await UserManger.CreateAsync(user, pass);
+
+                        await UserManger.AddToRoleAsync(user, "Admin");
+
+                    }
+                }
+        
+
+            }
+
+
+
+
 
             app.Run();
         }

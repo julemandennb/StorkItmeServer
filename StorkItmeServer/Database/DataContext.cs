@@ -6,7 +6,7 @@ using StorkItmeServer.Model;
 
 namespace StorkItmeServer.Database
 {
-    public class DataContext : IdentityDbContext<User>
+    public class DataContext : IdentityDbContext<User, Role,string>
     {
 
         public DataContext(DbContextOptions<DataContext> options):base(options)
