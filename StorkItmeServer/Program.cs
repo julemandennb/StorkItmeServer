@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
 using StorkItmeServer.Database;
 using StorkItmeServer.Model;
+using StorkItmeServer.Overrides;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace StorkItmeServer
@@ -55,7 +56,28 @@ namespace StorkItmeServer
                 app.ApplyMigrations();
             }
 
-            app.MapIdentityApi<User>();
+
+
+            //app.MapIdentityApi<User>();
+
+
+            app.MapIdentityApiFilterable<User,Role>(new IdentityApiEndpointRouteBuilderOptions()
+            {
+                ExcludeRegisterPost = false,
+                ExcludeLoginPost = false,
+                ExcludeRefreshPost = false,
+                ExcludeConfirmEmailGet = false,
+                ExcludeResendConfirmationEmailPost = false,
+                ExcludeForgotPasswordPost = false,
+                ExcludeResetPasswordPost = false,
+                // setting ExcludeManageGroup to false will disable
+                // 2FA and both Info Actions
+                ExcludeManageGroup = true,
+                Exclude2faPost = true,
+                ExcludegInfoGet = true,
+                ExcludeInfoPost = true,
+
+            });
 
             app.UseHttpsRedirection();
 

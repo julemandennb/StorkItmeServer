@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace StorkItmeServer.Controllers
 {
@@ -20,15 +21,30 @@ namespace StorkItmeServer.Controllers
         }
 
         [HttpGet(Name = "GetWeatherForecast")]
-        public IEnumerable<WeatherForecast> Get()
+        public IActionResult Get()
         {
-            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+            if (User.Identity?.IsAuthenticated ?? false)
             {
-                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var userName = User.Identity?.Name;
+
+                _logger.LogInformation($"User {userName} (ID: {userId}) is accessing weather forecast.");
+
+                var forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
+                {
+                    Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                    TemperatureC = Random.Shared.Next(-20, 55),
+                    Summary = Summaries[Random.Shared.Next(Summaries.Length)]
+                })
+                    .ToArray();
+
+                return Ok(forecasts);
+            }
+            else
+                return Unauthorized("User is not authenticated.");
+
         }
     }
 }
