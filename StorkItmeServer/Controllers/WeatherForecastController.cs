@@ -21,6 +21,7 @@ namespace StorkItmeServer.Controllers
         }
 
         [HttpGet(Name = "GetWeatherForecast")]
+        [Authorize(Policy = "Manager")]
         public IActionResult Get()
         {
             if (User.Identity?.IsAuthenticated ?? false)

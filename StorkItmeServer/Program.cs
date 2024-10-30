@@ -1,10 +1,12 @@
 
 using AspNetCore.Identity.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
 using StorkItmeServer.Database;
+using StorkItmeServer.Handler;
 using StorkItmeServer.Model;
 using StorkItmeServer.Overrides;
 using Swashbuckle.AspNetCore.Filters;
@@ -43,6 +45,19 @@ namespace StorkItmeServer
                 .AddRoles<Role>()
                 .AddEntityFrameworkStores<DataContext>();
 
+            RoleAuthorizationHandler roleAuthorizationHandler = new RoleAuthorizationHandler();
+
+            builder.Services.AddAuthorization(options =>
+            {
+                foreach(string role in roleAuthorizationHandler.roleHierarchy)
+                {
+                    options.AddPolicy(role, policy =>
+                   policy.Requirements.Add(new RoleRequirement(role)));
+
+                }
+            });
+
+            builder.Services.AddSingleton<IAuthorizationHandler, RoleAuthorizationHandler>();
 
 
             var app = builder.Build();
@@ -86,13 +101,14 @@ namespace StorkItmeServer
 
             app.MapControllers();
 
+            
+
+
             using (var scope = app.Services.CreateScope())
             {
                 var roleManger = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
 
-                var roles = new[] { "Admin","Manager","Member","Read" };
-
-                foreach (var role in roles)
+                foreach (var role in roleAuthorizationHandler.roleHierarchy)
                 {
                     if(! await roleManger.RoleExistsAsync(role))
                         await roleManger.CreateAsync(new Role(role, role));
