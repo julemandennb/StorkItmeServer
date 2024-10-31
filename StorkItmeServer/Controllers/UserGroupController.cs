@@ -11,10 +11,11 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Security.Claims;
+using StorkItmeServer.FromBody.UserGroup;
 
 namespace StorkItmeServer.Controllers
 {
-    [Route("usergroup")]
+    [Route("usergroup"), Authorize]
     [ApiController]
     public class UserGroupController : ControllerBase
     {
@@ -33,7 +34,7 @@ namespace StorkItmeServer.Controllers
 
         [HttpGet("GetAll")]
         [Authorize(Policy = "Read")]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(bool ShowAllGroup = false)
         {
             try
             {
@@ -42,6 +43,8 @@ namespace StorkItmeServer.Controllers
                 var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
                 List<UserGroupDTO> userGroups = new List<UserGroupDTO>();
 
+                if (_roleAuthorizationHandler.CheckUserRole("Manager", userRoles) && ShowAllGroup)
+                {
                     // Retrieve the list of user groups from the database
                     userGroups = await _context.UserGroup.Select(gp => new UserGroupDTO(gp)
                     {
@@ -49,12 +52,16 @@ namespace StorkItmeServer.Controllers
                         Users = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles) ? gp.Users.Select(u => new UserDTO(u)).ToList() : null,
 
                     }).ToListAsync();
-                
-              
-
-                // Log the number of records retrieved
-                _logger.LogInformation("Retrieved {Count} user groups.", userGroups.Count);
-
+                }
+                else
+                {
+                    userGroups = user.UserGroups.Select(g => new UserGroupDTO(g)
+                    {
+                        StorkItmes = g.StorkItmes.Select(s => new StorkItmeDTO(s)).ToList(),
+                        Users = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles) ? g.Users.Select(u => new UserDTO(u)).ToList() : null,
+                    }).ToList();
+                }
+  
                 return Ok(userGroups); // Return as JSON response
             }
             catch (Exception ex)
@@ -107,13 +114,13 @@ namespace StorkItmeServer.Controllers
 
         [HttpPost("Create")]
         [Authorize(Policy = "Manager")]
-        public IActionResult Create(string Name,string Color = "#fff")
+        public IActionResult Create([FromBody] UserGroupFromBody userGroupFromBody)
         {
             try
             {
                 UserGroup userGroup = new UserGroup();
-                userGroup.Name = Name;
-                userGroup.Color = Color;
+                userGroup.Name = userGroupFromBody.Name;
+                userGroup.Color = userGroupFromBody.Color;
 
                 _context.UserGroup.Add(userGroup);
                 _context.SaveChanges();
@@ -129,13 +136,13 @@ namespace StorkItmeServer.Controllers
 
         [HttpPut("AddUser")]
         [Authorize(Policy = "Manager")]
-        public IActionResult AddUser(int userGroupID, string userId)
+        public IActionResult AddUser([FromBody] UserGroupIdUserIdFromBody fromBody)
         {
             try
             {
-                UserGroup userGroup = _context.UserGroup.FirstOrDefault(x => x.Id == userGroupID);
+                UserGroup userGroup = _context.UserGroup.FirstOrDefault(x => x.Id == fromBody.UserGroupId);
 
-                User user = _context.Users.FirstOrDefault(x => x.Id == userId);
+                User user = _context.Users.FirstOrDefault(x => x.Id == fromBody.UserId);
 
                 if (user != null && userGroup != null)
                 {
@@ -206,13 +213,13 @@ namespace StorkItmeServer.Controllers
 
         [HttpDelete("RemoveUser")]
         [Authorize(Policy = "Manager")]
-        public IActionResult RemoveUser(int userGroupID, string userId)
+        public IActionResult RemoveUser([FromBody] UserGroupIdUserIdFromBody fromBody)
         {
             try
             {
-                UserGroup userGroup = _context.UserGroup.FirstOrDefault(x => x.Id == userGroupID);
+                UserGroup userGroup = _context.UserGroup.FirstOrDefault(x => x.Id == fromBody.UserGroupId);
 
-                User user = _context.Users.FirstOrDefault(x => x.Id == userId);
+                User user = _context.Users.FirstOrDefault(x => x.Id == fromBody.UserId);
 
 
                 if (user != null && userGroup != null)
