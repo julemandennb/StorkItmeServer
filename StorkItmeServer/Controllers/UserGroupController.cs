@@ -124,7 +124,7 @@ namespace StorkItmeServer.Controllers
 
                 _context.UserGroup.Add(userGroup);
                 _context.SaveChanges();
-                return Ok(userGroup);
+                return Ok(new UserGroupDTO(userGroup));
             }
             catch (Exception ex)
             {
@@ -133,6 +133,38 @@ namespace StorkItmeServer.Controllers
             }
 
         }
+
+        [HttpPut("Updata")]
+        [Authorize(Policy = "Manager")]
+        public IActionResult Updata([FromBody] UserGroupFromBody userGroupFromBody,int id)
+        {
+            try { 
+
+                UserGroup userGroup = _context.UserGroup.FirstOrDefault(u => u.Id == id);
+
+                if (userGroup is not null)
+                {
+                    
+                    userGroup.Name = userGroupFromBody.Name;
+                    userGroup.Color=userGroupFromBody.Color;
+
+                    _context.SaveChanges();
+
+                    return Ok(new UserGroupDTO(userGroup));
+                }
+
+
+                return BadRequest();
+
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving user groups.");
+                return StatusCode(500, "Internal server error");
+    }
+
+}
 
         [HttpPut("AddUser")]
         [Authorize(Policy = "Manager")]
@@ -190,7 +222,6 @@ namespace StorkItmeServer.Controllers
                     _context.UserGroup.Remove(userGroup);
 
                     _context.SaveChanges();
-
 
                     return Ok();
                 }
