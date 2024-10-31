@@ -10,8 +10,8 @@ namespace StorkItmeServer.Model
 
         public string Color { get; set; }
 
-        public List<User> Users { get; } = [];
+        public virtual ICollection<User> Users { get; set; } = [];
 
-        public ICollection<StorkItme> StorkItmes { get; } = new List<StorkItme>();
+        public virtual ICollection<StorkItme> StorkItmes { get; set; } = new List<StorkItme>();
     }
 }

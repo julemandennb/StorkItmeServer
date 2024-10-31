@@ -20,6 +20,6 @@ namespace StorkItmeServer.Model
 
         public int UserGroupId { get; set; }
 
-        public UserGroup UserGroup { get; set; } = null!;
+        public virtual UserGroup UserGroup { get; set; } = null!;
     }
 }
