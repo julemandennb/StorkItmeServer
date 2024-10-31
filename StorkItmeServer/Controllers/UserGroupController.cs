@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StorkItmeServer.Database;
-using StorkItmeServer.DTO;
+using StorkItmeServer.Model.DTO;
 using StorkItmeServer.Handler;
 using StorkItmeServer.Model;
 using System;

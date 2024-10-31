@@ -1,6 +1,6 @@
 ﻿using StorkItmeServer.Model;
 
-namespace StorkItmeServer.DTO
+namespace StorkItmeServer.Model.DTO
 {
     public class StorkItmeDTO
     {
