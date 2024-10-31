@@ -18,7 +18,7 @@ namespace StorkItmeServer.DTO
 
         public string ImgUrl { get; set; }
 
-        public  UserGroupDTO UserGroup { get; set; } = null!;
+        public  UserGroupDTO UserGroup { get; set; }
 
         public StorkItmeDTO() { }
 

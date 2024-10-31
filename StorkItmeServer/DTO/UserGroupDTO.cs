@@ -1,4 +1,6 @@
-﻿namespace StorkItmeServer.DTO
+﻿using StorkItmeServer.Model;
+
+namespace StorkItmeServer.DTO
 {
     public class UserGroupDTO
     {
@@ -13,5 +15,13 @@
         public List<StorkItmeDTO> StorkItmes { get; set; }
 
         public UserGroupDTO() { }
+
+        public UserGroupDTO(UserGroup userGroup) {
+        
+            Id = userGroup.Id;
+            Name = userGroup.Name;
+            Color = userGroup.Color;
+
+        }
     }
 }

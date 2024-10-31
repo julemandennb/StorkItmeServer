@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using StorkItmeServer.Model;
 using System.Security.Claims;
 
 namespace StorkItmeServer.Handler
@@ -63,6 +64,21 @@ namespace StorkItmeServer.Handler
 
         }
 
+
+        public bool CheckUserRole(string role, string UserRole)
+        {
+
+            if (UserRole == role || UserRole == roleHierarchy.Last())
+            {
+                return true;
+            }
+            else if (RoleIndexCheck(UserRole, role))
+            {
+                return true;
+            }
+
+            return false;
+        }
 
 
     }

@@ -9,6 +9,11 @@ namespace StorkItmeServer.Database
     public class DataContext : IdentityDbContext<User, Role,string>
     {
 
+        public DbSet<UserGroup> UserGroup { get; set; }
+        public DbSet<StorkItme> StorkItme { get; set; }
+
+
+
         public DataContext(DbContextOptions<DataContext> options):base(options)
         {
             
