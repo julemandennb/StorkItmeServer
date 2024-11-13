@@ -16,7 +16,7 @@ namespace StorkItmeServer.Database
 
                 bu.HasMany(e => e.StorkItmes)
                 .WithOne(e => e.UserGroup)
-                .HasForeignKey(e => e.Id)
+                .HasForeignKey(e => e.UserGroupId)
                 .IsRequired(false);
 
             });

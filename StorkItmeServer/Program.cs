@@ -21,6 +21,16 @@ namespace StorkItmeServer
 
             // Add services to the container.
 
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAllOrigins",
+                    builder => builder.AllowAnyOrigin()
+                                      .AllowAnyMethod()
+                                      .AllowAnyHeader());
+            });
+
+
             builder.Services.AddControllers().AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
@@ -63,7 +73,11 @@ namespace StorkItmeServer
             builder.Services.AddSingleton<IAuthorizationHandler, RoleAuthorizationHandler>();
 
 
+
+
             var app = builder.Build();
+
+            app.UseCors("AllowAllOrigins");
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

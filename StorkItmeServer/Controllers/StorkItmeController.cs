@@ -105,48 +105,50 @@ namespace StorkItmeServer.Controllers
 
         [HttpPost("Create")]
         [Authorize(Policy = "Member")]
-        public IActionResult Create([FromBody]StorkItmeFromBody storkItmeFromBody)
+        public IActionResult Create([FromBody] StorkItmeFromBody storkItmeFromBody)
         {
             try
             {
-                UserGroup userGroup = _context.UserGroup.FirstOrDefault(u => u.Id == storkItmeFromBody.UserGroupId);
+                // Check for valid UserGroup early
+                var userGroup = _context.UserGroup.FirstOrDefault(u => u.Id == storkItmeFromBody.UserGroupId);
 
-                if(userGroup is not null)
+                if (userGroup is null)
                 {
-
-                    StorkItme storkItme = new StorkItme()
-                    {
-
-                        Name = storkItmeFromBody.Name,
-                        Description = storkItmeFromBody.Description,
-                        Type = storkItmeFromBody.Type,
-                        BestBy = storkItmeFromBody.BestBy,
-                        Stork = storkItmeFromBody.Stork,
-                        ImgUrl = storkItmeFromBody.ImgUrl,
-                        UserGroupId = userGroup.Id,
-                        UserGroup = userGroup
-
-                    };
-
-                    _context.StorkItme.Add(storkItme);
-                    _context.SaveChanges();
-
-                    return Ok(new StorkItmeDTO(storkItme) {UserGroup = new UserGroupDTO(userGroup) });
-
-
+                    // Log and return BadRequest with a message to explain the issue
+                    _logger.LogWarning("UserGroup with ID {UserGroupId} not found.", storkItmeFromBody.UserGroupId);
+                    return BadRequest("Invalid UserGroup ID provided.");
                 }
 
-                return BadRequest();
 
+                // Create StorkItme if UserGroup is valid
+                var storkItme = new StorkItme()
+                {
+                    Name = storkItmeFromBody.Name,
+                    Description = storkItmeFromBody.Description,
+                    Type = storkItmeFromBody.Type,
+                    BestBy = storkItmeFromBody.BestBy,
+                    Stork = storkItmeFromBody.Stork,
+                    ImgUrl = storkItmeFromBody.ImgUrl,
+                    UserGroupId = userGroup.Id,
+                };
 
+                _context.StorkItme.Add(storkItme);
+                _context.SaveChanges();
+
+                // Log successful creation
+                _logger.LogInformation("StorkItme with ID {StorkItmeId} created successfully.", storkItme.Id);
+
+                // Return a successful response with DTO
+                return Ok(new StorkItmeDTO(storkItme) { UserGroup = new UserGroupDTO(userGroup) });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving user groups.");
+                // Log the exception details
+                _logger.LogError(ex, "An error occurred while creating the StorkItme.");
                 return StatusCode(500, "Internal server error");
             }
-
         }
+
 
         [HttpPut("Updata")]
         [Authorize(Policy = "Member")]
