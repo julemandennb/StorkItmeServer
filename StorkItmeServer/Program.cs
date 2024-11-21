@@ -9,6 +9,8 @@ using StorkItmeServer.Database;
 using StorkItmeServer.Handler;
 using StorkItmeServer.Model;
 using StorkItmeServer.Overrides;
+using StorkItmeServer.Server;
+using StorkItmeServer.Server.Interface;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace StorkItmeServer
@@ -72,6 +74,7 @@ namespace StorkItmeServer
 
             builder.Services.AddSingleton<IAuthorizationHandler, RoleAuthorizationHandler>();
 
+            SetUpInterface(builder.Services);
 
 
 
@@ -166,5 +169,16 @@ namespace StorkItmeServer
 
             app.Run();
         }
+
+
+        private static void SetUpInterface(IServiceCollection services)
+        {
+            services.AddScoped<IStorkItmeServ, StorkItmeServ>();
+            services.AddScoped<IUserGroupServ, UserGroupServ>();
+            services.AddScoped<IUserServ, UserServ>();
+        }
+
+
+
     }
 }

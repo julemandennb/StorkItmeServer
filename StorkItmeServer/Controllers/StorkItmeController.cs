@@ -8,6 +8,7 @@ using StorkItmeServer.FromBody.StorkItme;
 using StorkItmeServer.Handler;
 using StorkItmeServer.Model;
 using StorkItmeServer.Model.DTO;
+using StorkItmeServer.Server.Interface;
 using System.Linq;
 using System.Security.Claims;
 using System.Xml.Linq;
@@ -18,17 +19,22 @@ namespace StorkItmeServer.Controllers
     [ApiController]
     public class StorkItmeController : ControllerBase
     {
-        private readonly ILogger<UserGroupController> _logger;
-        private readonly DataContext _context;
+        private readonly ILogger<StorkItmeController> _logger;
         private readonly RoleAuthorizationHandler _roleAuthorizationHandler;
         private readonly UserManager<User> _userManager;
 
-        public StorkItmeController(ILogger<UserGroupController> logger, DataContext context, UserManager<User> userManager)
+        private readonly IStorkItmeServ _storkItmeServer;
+        private readonly IUserGroupServ _userGroupServ;
+
+        public StorkItmeController(ILogger<StorkItmeController> logger, UserManager<User> userManager, IStorkItmeServ storkItmeServer, IUserGroupServ userGroupServ)
         {
             _logger = logger;
-            _context = context;
             _roleAuthorizationHandler = new RoleAuthorizationHandler();
             _userManager = userManager;
+
+            _storkItmeServer = storkItmeServer;
+            _userGroupServ = userGroupServ;
+
         }
 
         [HttpGet("Get")]
@@ -40,7 +46,7 @@ namespace StorkItmeServer.Controllers
                 var user = await _userManager.GetUserAsync(User);
                 var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
 
-                StorkItme storkItme = _context.StorkItme.FirstOrDefault(x => x.Id == id);
+                StorkItme storkItme = _storkItmeServer.Get(id);
 
                 if (storkItme is not null)
                 {
@@ -49,7 +55,7 @@ namespace StorkItmeServer.Controllers
 
                     bool HavRightGroups = user.UserGroups.Contains(storkItme.UserGroup);
 
-                    if (roleCheck || roleCheck)
+                    if (roleCheck || HavRightGroups)
                     {
 
                         StorkItmeDTO storkItmeDTO = new StorkItmeDTO(storkItme)
@@ -86,11 +92,17 @@ namespace StorkItmeServer.Controllers
 
                 List<StorkItmeDTO> storkItmeDTOs = new List<StorkItmeDTO>();
 
-                if(roleCheck && GetAllStorkItme)
-                    storkItmeDTOs = await _context.StorkItme.Select(x => new StorkItmeDTO(x) {UserGroup = new UserGroupDTO(x.UserGroup) }).ToListAsync();
-                else
+                IQueryable<StorkItme> StorkItmes = _storkItmeServer.GetAll();
+
+                if (StorkItmes is not null)
                 {
-                    storkItmeDTOs = await _context.StorkItme.Where(g => user.UserGroups.Contains(g.UserGroup)).Select(b => new StorkItmeDTO(b) { UserGroup = new UserGroupDTO(b.UserGroup) } ).ToListAsync();
+
+                    if (roleCheck && GetAllStorkItme)
+                        storkItmeDTOs = await StorkItmes.Select(x => new StorkItmeDTO(x) { UserGroup = new UserGroupDTO(x.UserGroup) }).ToListAsync();
+                    else
+                    {
+                        storkItmeDTOs = await StorkItmes.Where(g => user.UserGroups.Contains(g.UserGroup)).Select(b => new StorkItmeDTO(b) { UserGroup = new UserGroupDTO(b.UserGroup) }).ToListAsync();
+                    }
                 }
 
                 return Ok(storkItmeDTOs);
@@ -110,7 +122,7 @@ namespace StorkItmeServer.Controllers
             try
             {
                 // Check for valid UserGroup early
-                var userGroup = _context.UserGroup.FirstOrDefault(u => u.Id == storkItmeFromBody.UserGroupId);
+                var userGroup = _userGroupServ.Get(storkItmeFromBody.UserGroupId);
 
                 if (userGroup is null)
                 {
@@ -132,9 +144,12 @@ namespace StorkItmeServer.Controllers
                     UserGroupId = userGroup.Id,
                 };
 
-                _context.StorkItme.Add(storkItme);
-                _context.SaveChanges();
+                storkItme = _storkItmeServer.Create(storkItme);
 
+                if( storkItme is null )
+                {
+                    return StatusCode(500, "StorkItme is not created");
+                }
                 // Log successful creation
                 _logger.LogInformation("StorkItme with ID {StorkItmeId} created successfully.", storkItme.Id);
 
@@ -158,7 +173,7 @@ namespace StorkItmeServer.Controllers
             try
             {
 
-                StorkItme storkItme = _context.StorkItme.FirstOrDefault(st => st.Id == id);
+                StorkItme storkItme = _storkItmeServer.Get(id);
 
                 if(storkItme is not null)
                 {
@@ -175,7 +190,7 @@ namespace StorkItmeServer.Controllers
 
                     if (storkItme.UserGroupId != storkItmeFromBody.UserGroupId)
                     {
-                        UserGroup userGroup = _context.UserGroup.FirstOrDefault(g => g.Id == storkItmeFromBody.UserGroupId);
+                        UserGroup userGroup = _userGroupServ.Get(storkItmeFromBody.UserGroupId);
 
                         if (userGroup is not null)
                         {
@@ -188,8 +203,8 @@ namespace StorkItmeServer.Controllers
 
                     if (!error)
                     {
-                        _context.SaveChanges();
-                        return Ok();
+                        if(_storkItmeServer.Updata(storkItme))
+                            return Ok();
                     }
                 }
 
@@ -210,15 +225,14 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
-                StorkItme storkItme = _context.StorkItme.FirstOrDefault(g => g.Id == id);
+                StorkItme storkItme = _storkItmeServer.Get(id);
 
-                if(storkItme is not null)
+                if (storkItme is not null)
                 {
-                    _context.StorkItme.Remove(storkItme);
-
-                    _context.SaveChanges();
-
-                    return Ok();
+                    if(_storkItmeServer.Delete(storkItme))
+                        return Ok();
+                    else
+                        return StatusCode(500, "cannot delete storkItme");
                 }
 
                 return StatusCode(500, "No storkItme find");

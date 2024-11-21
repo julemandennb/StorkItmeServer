@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Security.Claims;
 using StorkItmeServer.FromBody.UserGroup;
+using StorkItmeServer.Server.Interface;
 
 namespace StorkItmeServer.Controllers
 {
@@ -20,16 +21,22 @@ namespace StorkItmeServer.Controllers
     public class UserGroupController : ControllerBase
     {
         private readonly ILogger<UserGroupController> _logger;
-        private readonly DataContext _context;
         private readonly RoleAuthorizationHandler _roleAuthorizationHandler;
         private readonly UserManager<User> _userManager;
 
-        public UserGroupController(ILogger<UserGroupController> logger, DataContext context, UserManager<User> userManager)
+        private readonly IUserGroupServ _userGroupServ;
+        private readonly IStorkItmeServ _storkItmeServ;
+        private readonly IUserServ _userServ;
+
+
+        public UserGroupController(ILogger<UserGroupController> logger,UserManager<User> userManager,IUserGroupServ userGroupServ, IStorkItmeServ storkItmeServ, IUserServ userServ)
         {
             _logger = logger;
-            _context = context;
             _roleAuthorizationHandler = new RoleAuthorizationHandler();
             _userManager = userManager;
+            _userGroupServ = userGroupServ;
+            _storkItmeServ = storkItmeServ;
+            _userServ = userServ;
         }
 
         [HttpGet("GetAll")]
@@ -46,7 +53,7 @@ namespace StorkItmeServer.Controllers
                 if (_roleAuthorizationHandler.CheckUserRole("Manager", userRoles) && ShowAllGroup)
                 {
                     // Retrieve the list of user groups from the database
-                    userGroups = await _context.UserGroup.Select(gp => new UserGroupDTO(gp)
+                    userGroups = await _userGroupServ.GetAll().Select(gp => new UserGroupDTO(gp)
                     {
                         StorkItmes = gp.StorkItmes.Select(s => new StorkItmeDTO(s)).ToList(),
                         Users = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles) ? gp.Users.Select(u => new UserDTO(u)).ToList() : null,
@@ -80,7 +87,7 @@ namespace StorkItmeServer.Controllers
                 var user = await _userManager.GetUserAsync(User);
                 var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
 
-                UserGroup userGroup = _context.UserGroup.FirstOrDefault(x => x.Id == id);
+                UserGroup userGroup = _userGroupServ.Get(id);
 
                 bool roleCheck = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles);
 
@@ -122,8 +129,8 @@ namespace StorkItmeServer.Controllers
                 userGroup.Name = userGroupFromBody.Name;
                 userGroup.Color = userGroupFromBody.Color;
 
-                _context.UserGroup.Add(userGroup);
-                _context.SaveChanges();
+                userGroup = _userGroupServ.Create(userGroup);
+                
                 return Ok(new UserGroupDTO(userGroup));
             }
             catch (Exception ex)
@@ -140,7 +147,7 @@ namespace StorkItmeServer.Controllers
         {
             try { 
 
-                UserGroup userGroup = _context.UserGroup.FirstOrDefault(u => u.Id == id);
+                UserGroup userGroup = _userGroupServ.Get(id);
 
                 if (userGroup is not null)
                 {
@@ -148,9 +155,10 @@ namespace StorkItmeServer.Controllers
                     userGroup.Name = userGroupFromBody.Name;
                     userGroup.Color=userGroupFromBody.Color;
 
-                    _context.SaveChanges();
-
-                    return Ok(new UserGroupDTO(userGroup));
+                   if(_userGroupServ.Updata(userGroup))
+                        return Ok(new UserGroupDTO(userGroup));
+                   else
+                        return BadRequest();
                 }
 
 
@@ -172,20 +180,18 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
-                UserGroup userGroup = _context.UserGroup.FirstOrDefault(x => x.Id == fromBody.UserGroupId);
+                UserGroup userGroup = _userGroupServ.Get(fromBody.UserGroupId);
 
-                User user = _context.Users.FirstOrDefault(x => x.Id == fromBody.UserId);
+                User user = _userServ.Get(fromBody.UserId);
 
                 if (user != null && userGroup != null)
                 {
                     userGroup.Users.Add(user);
 
-                    _context.UserGroup.Update(userGroup);
-                    _context.SaveChanges();
-
-
-
-                    return Ok();
+                    if (_userGroupServ.Updata(userGroup))
+                        return Ok();
+                    else
+                        return BadRequest();
                 }
                 else
                 {
@@ -206,22 +212,12 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
-                UserGroup userGroup = _context.UserGroup.FirstOrDefault(x => x.Id == id);
+                UserGroup userGroup = _userGroupServ.Get(id);
 
-                if(userGroup is not null)
+                if (userGroup is not null)
                 {
-
-                    userGroup.Users.Clear();
-
-                    ICollection<StorkItme> storkItmes = userGroup.StorkItmes;
-
-                    _context.StorkItme.RemoveRange(storkItmes);
-
-                    userGroup.StorkItmes.Clear();
-
-                    _context.UserGroup.Remove(userGroup);
-
-                    _context.SaveChanges();
+                    
+                    _userGroupServ.Delete(userGroup);
 
                     return Ok();
                 }
@@ -248,19 +244,18 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
-                UserGroup userGroup = _context.UserGroup.FirstOrDefault(x => x.Id == fromBody.UserGroupId);
+                UserGroup userGroup = _userGroupServ.Get(fromBody.UserGroupId);
 
-                User user = _context.Users.FirstOrDefault(x => x.Id == fromBody.UserId);
+                User user = _userServ.Get(fromBody.UserId);
 
 
                 if (user != null && userGroup != null)
                 {
 
                     userGroup.Users.Remove(user);
-                    _context.SaveChanges();
+                    if(_userGroupServ.Updata(userGroup))
+                        return Ok();
 
-
-                    return Ok();
                 }
                 return BadRequest();
             }
