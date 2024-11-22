@@ -151,7 +151,10 @@ namespace StorkItmeServer.Server
 
         private void ErrorCatch(Exception ex, string funName)
         {
-            _logger.LogError(ex, $"An error occurred while {funName}");
+            if (_logger != null)
+                _logger.LogError(ex, $"An error occurred while {funName}");
+            else
+                Console.WriteLine(ex);
         }
 
     }

@@ -46,7 +46,9 @@ namespace TestProject
         {
             List<UserGroup> userGroups = new List<UserGroup>
             {
-                new UserGroup() { Name = "test", Color = "#fff" }
+                new UserGroup() { Name = "den har id 1", Color = "#fff" },
+                new UserGroup() { Name = "den har id 2", Color = "#fff" },
+                new UserGroup() { Name = "den har id 3", Color = "#fff" }
             };
 
             return userGroups;
@@ -60,7 +62,8 @@ namespace TestProject
             {
                 new StorkItme() { UserGroupId = 1, Name = "den har id 1", Stork = 1, BestBy = dateTime, Description = "den har id 1", Type = "fefs", ImgUrl = "" },
                 new StorkItme() { UserGroupId = 1, Name = "den har id 2", Stork = 1, BestBy = dateTime, Description = "den har id 2", Type = "fefs", ImgUrl = "" },
-                new StorkItme() { UserGroupId = 1, Name = "den har id 3", Stork = 1, BestBy = dateTime, Description = "den har id 3", Type = "fefs", ImgUrl = "" }
+                new StorkItme() { UserGroupId = 1, Name = "den har id 3", Stork = 1, BestBy = dateTime, Description = "den har id 3", Type = "fefs", ImgUrl = "" },
+                new StorkItme() { UserGroupId = 1, Name = "den har id 4", Stork = 1, BestBy = dateTime, Description = "den har id 4", Type = "fefs", ImgUrl = "" }
             };
 
             return storkItmess;

@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using StorkItmeServer.Database;
 using StorkItmeServer.Model;
 using StorkItmeServer.Server;
-using System;
-using System.Xml.Linq;
+
 
 namespace TestProject
 {
