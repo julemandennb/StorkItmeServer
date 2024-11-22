@@ -10,11 +10,22 @@ namespace TestProject
     public class UnitTestStorkItmeServ
     {
 
+        private SetDataBaseUp _setDataBaseUp;
+
+        public UnitTestStorkItmeServ() {
+
+            _setDataBaseUp = new SetDataBaseUp("StorkItmeServ");
+
+
+        }
+
+
+
         [Fact]
         public void TestGet()
         {
             
-            using (var context = SetDataBaseUp("Get"))
+            using (var context = _setDataBaseUp.Up("Get"))
             {
                 StorkItmeServ storkItmeServ = new StorkItmeServ(null,context);
                 StorkItme storkItme = storkItmeServ.Get(2);
@@ -31,13 +42,13 @@ namespace TestProject
         public void TestGetAll()
         {
 
-            using (var context = SetDataBaseUp("GetAll"))
+            using (var context = _setDataBaseUp.Up("GetAll"))
             {
                 StorkItmeServ storkItmeServ = new StorkItmeServ(null, context);
                 IQueryable<StorkItme> storkItmes = storkItmeServ.GetAll();
                 Assert.NotNull(storkItmes);
      
-                Assert.Equal(StorkItmes().Count(),storkItmes.Count());
+                Assert.Equal(_setDataBaseUp.StorkItmes().Count(),storkItmes.Count());
             }
 
         }
@@ -46,17 +57,17 @@ namespace TestProject
         public void TestCreate()
         {
 
-            using (var context = SetDataBaseUp("Create"))
+            using (var context = _setDataBaseUp.Up("Create"))
             {
                 StorkItmeServ storkItmeServ = new StorkItmeServ(null, context);
 
-                int checkNr = StorkItmes().Count();
+                int checkNr = _setDataBaseUp.StorkItmes().Count();
                 int Nr = context.StorkItme.Count();
                 Assert.Equal(checkNr, Nr);
 
                 StorkItme storkItme = new StorkItme() { UserGroupId = 1, Name = "den har er add", Stork = 1, BestBy = new DateTime(), Description = "den har er add", Type = "fefs", ImgUrl = "" };
                 storkItmeServ.Create(storkItme);
-                checkNr = StorkItmes().Count() + 1;
+                checkNr = _setDataBaseUp.StorkItmes().Count() + 1;
                 Nr = context.StorkItme.Count();
 
                 Assert.Equal(checkNr, Nr);
@@ -68,11 +79,11 @@ namespace TestProject
         public void TestCreateWithoutSave()
         {
 
-            using (var context = SetDataBaseUp("CreateWithoutSave"))
+            using (var context = _setDataBaseUp.Up("CreateWithoutSave"))
             {
                 StorkItmeServ storkItmeServ = new StorkItmeServ(null, context);
 
-                int checkNr = StorkItmes().Count();
+                int checkNr = _setDataBaseUp.StorkItmes().Count();
                 int Nr = context.StorkItme.Count();
                 Assert.Equal(checkNr, Nr);
 
@@ -83,7 +94,7 @@ namespace TestProject
                 Assert.Equal(checkNr, Nr);
                 context.SaveChanges();
                 Nr = context.StorkItme.Count();
-                checkNr = StorkItmes().Count() + 1;
+                checkNr = _setDataBaseUp.StorkItmes().Count() + 1;
 
                 Assert.Equal(checkNr, Nr);
 
@@ -95,7 +106,7 @@ namespace TestProject
         public void TestUpdata()
         {
 
-            using (var context = SetDataBaseUp("Updata"))
+            using (var context = _setDataBaseUp.Up("Updata"))
             {
                 StorkItmeServ storkItmeServ = new StorkItmeServ(null, context);
 
@@ -120,7 +131,7 @@ namespace TestProject
         public void TestUpdateWithoutSave()
         {
            
-            using (var context = SetDataBaseUp("TestUpdateWithoutSave"))
+            using (var context = _setDataBaseUp.Up("TestUpdateWithoutSave"))
             {
                 var storkItmeServ = new StorkItmeServ(null, context);
 
@@ -146,11 +157,11 @@ namespace TestProject
         public void TestDelete()
         {
 
-            using (var context = SetDataBaseUp("Delete"))
+            using (var context = _setDataBaseUp.Up("Delete"))
             {
                 var storkItmeServ = new StorkItmeServ(null, context);
 
-                int checkNr = StorkItmes().Count();
+                int checkNr = _setDataBaseUp.StorkItmes().Count();
                 int nr = context.StorkItme.Count();
 
                 Assert.Equal(checkNr, nr);
@@ -170,11 +181,11 @@ namespace TestProject
         public void TestDeleteWithoutSave()
         {
 
-            using (var context = SetDataBaseUp("DeleteWithoutSave"))
+            using (var context = _setDataBaseUp.Up("DeleteWithoutSave"))
             {
                 var storkItmeServ = new StorkItmeServ(null, context);
 
-                int checkNr = StorkItmes().Count();
+                int checkNr = _setDataBaseUp.StorkItmes().Count();
                 int nr = context.StorkItme.Count();
 
                 Assert.Equal(checkNr, nr);
@@ -201,11 +212,11 @@ namespace TestProject
         public void TestRemoveRange()
         {
 
-            using (var context = SetDataBaseUp("RemoveRange"))
+            using (var context = _setDataBaseUp.Up("RemoveRange"))
             {
                 var storkItmeServ = new StorkItmeServ(null, context);
 
-                int checkNr = StorkItmes().Count();
+                int checkNr = _setDataBaseUp.StorkItmes().Count();
                 int nr = context.StorkItme.Count();
                 Assert.Equal(checkNr, nr);
 
@@ -224,11 +235,11 @@ namespace TestProject
         public void TestRemoveRangeWithoutSave()
         {
 
-            using (var context = SetDataBaseUp("RemoveRangeWithoutSave"))
+            using (var context = _setDataBaseUp.Up("RemoveRangeWithoutSave"))
             {
                 var storkItmeServ = new StorkItmeServ(null, context);
 
-                int checkNr = StorkItmes().Count();
+                int checkNr = _setDataBaseUp.StorkItmes().Count();
                 int nr = context.StorkItme.Count();
                 Assert.Equal(checkNr, nr);
 
@@ -249,53 +260,5 @@ namespace TestProject
             }
 
         }
-
-        private DataContext SetDataBaseUp(string databaseName)
-        {
-
-            var options = new DbContextOptionsBuilder<DataContext>()
-            .UseInMemoryDatabase(databaseName: databaseName+"Database")
-            .Options;
-
-            DateTime dateTime = new DateTime().AddYears(1);
-
-            using (var context = new DataContext(options))
-            {
-                context.UserGroup.AddRange(UserGroups());
-
-                context.StorkItme.AddRange(StorkItmes());
-
-                context.SaveChanges();
-            }
-
-            return new DataContext(options);
-        }
-
-        private List<UserGroup> UserGroups()
-        {
-            List<UserGroup> userGroups = new List<UserGroup>
-            {
-                new UserGroup() { Name = "test", Color = "#fff" }
-            };
-
-            return userGroups;
-        }
-
-        private List<StorkItme> StorkItmes()
-        {
-            DateTime dateTime = new DateTime().AddYears(1);
-
-            List<StorkItme> storkItmess = new List<StorkItme>
-            {
-                new StorkItme() { UserGroupId = 1, Name = "den har id 1", Stork = 1, BestBy = dateTime, Description = "den har id 1", Type = "fefs", ImgUrl = "" },
-                new StorkItme() { UserGroupId = 1, Name = "den har id 2", Stork = 1, BestBy = dateTime, Description = "den har id 2", Type = "fefs", ImgUrl = "" },
-                new StorkItme() { UserGroupId = 1, Name = "den har id 3", Stork = 1, BestBy = dateTime, Description = "den har id 3", Type = "fefs", ImgUrl = "" }
-            };
-
-            return storkItmess;
-        }
-
-       
-
     }
 }
