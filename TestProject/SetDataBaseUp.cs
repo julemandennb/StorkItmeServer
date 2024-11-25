@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using StorkItmeServer.Database;
 using StorkItmeServer.Model;
 using System;
@@ -36,10 +37,25 @@ namespace TestProject
 
                 context.StorkItme.AddRange(StorkItmes());
 
+                context.Users.AddRange(Users());
+
                 context.SaveChanges();
             }
 
             return new DataContext(options);
+        }
+
+
+  
+        internal List<User> Users()
+        {
+            List<User> users = new List<User>
+            {
+                new User(){ UserName ="User1",Email="User1@test.dk"},
+                new User(){ UserName ="User2",Email="User2@test.dk"},
+            };
+
+            return users;
         }
 
         internal List<UserGroup> UserGroups()

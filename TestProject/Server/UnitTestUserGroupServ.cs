@@ -3,7 +3,7 @@ using StorkItmeServer.Database;
 using StorkItmeServer.Model;
 using StorkItmeServer.Server;
 
-namespace TestProject
+namespace TestProject.Server
 {
     public class UnitTestUserGroupServ
     {

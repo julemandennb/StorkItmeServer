@@ -3,14 +3,15 @@ using StorkItmeServer.Model;
 using StorkItmeServer.Server;
 
 
-namespace TestProject
+namespace TestProject.Server
 {
     public class UnitTestStorkItmeServ
     {
 
         private SetDataBaseUp _setDataBaseUp;
 
-        public UnitTestStorkItmeServ() {
+        public UnitTestStorkItmeServ()
+        {
 
             _setDataBaseUp = new SetDataBaseUp("StorkItmeServ");
 
@@ -22,16 +23,16 @@ namespace TestProject
         [Fact]
         public void TestGet()
         {
-            
+
             using (var context = _setDataBaseUp.Up("Get"))
             {
-                StorkItmeServ storkItmeServ = new StorkItmeServ(null,context);
+                StorkItmeServ storkItmeServ = new StorkItmeServ(null, context);
                 StorkItme storkItme = storkItmeServ.Get(2);
                 Assert.NotNull(storkItme);
                 StorkItme StorkItmeCheck = context.StorkItme.FirstOrDefault(x => x.Id == 2);
                 Assert.NotNull(StorkItmeCheck);
 
-                Assert.Equal(StorkItmeCheck,storkItme);
+                Assert.Equal(StorkItmeCheck, storkItme);
             }
 
         }
@@ -45,8 +46,8 @@ namespace TestProject
                 StorkItmeServ storkItmeServ = new StorkItmeServ(null, context);
                 IQueryable<StorkItme> storkItmes = storkItmeServ.GetAll();
                 Assert.NotNull(storkItmes);
-     
-                Assert.Equal(_setDataBaseUp.StorkItmes().Count(),storkItmes.Count());
+
+                Assert.Equal(_setDataBaseUp.StorkItmes().Count(), storkItmes.Count());
             }
 
         }
@@ -128,7 +129,7 @@ namespace TestProject
         [Fact]
         public void TestUpdateWithoutSave()
         {
-           
+
             using (var context = _setDataBaseUp.Up("TestUpdateWithoutSave"))
             {
                 var storkItmeServ = new StorkItmeServ(null, context);
@@ -191,7 +192,7 @@ namespace TestProject
                 StorkItme storkItme = storkItmeServ.Get(2);
 
                 storkItmeServ.DeleteWithoutSave(storkItme);
-                
+
                 nr = context.StorkItme.Count();
 
                 Assert.Equal(checkNr, nr);
