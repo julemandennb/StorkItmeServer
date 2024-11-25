@@ -96,7 +96,7 @@ namespace StorkItmeServer
             //app.MapIdentityApi<User>();
 
 
-            app.MapIdentityApiFilterable<User,Role>(new IdentityApiEndpointRouteBuilderOptions()
+           /* app.MapIdentityApiFilterable<User,Role>(new IdentityApiEndpointRouteBuilderOptions()
             {
                 ExcludeRegisterPost = false,
                 ExcludeLoginPost = false,
@@ -107,12 +107,12 @@ namespace StorkItmeServer
                 ExcludeResetPasswordPost = false,
                 // setting ExcludeManageGroup to false will disable
                 // 2FA and both Info Actions
-                ExcludeManageGroup = true,
-                Exclude2faPost = true,
-                ExcludegInfoGet = true,
-                ExcludeInfoPost = true,
+                ExcludeManageGroup = false,
+                Exclude2faPost = false,
+                ExcludegInfoGet = false,
+                ExcludeInfoPost = false,
 
-            });
+            });*/
 
             app.UseHttpsRedirection();
 

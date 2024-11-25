@@ -13,6 +13,8 @@ namespace StorkItmeServer.Model.DTO
         public string PhoneNumber { get; set; }
         public List<UserGroupDTO> UserGroups { get; set; }
 
+        public RoleDTO Role { get; set; }
+
         public UserDTO() { }
 
         public UserDTO(User user) {
