@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StorkItmeServer.Database;
 using StorkItmeServer.FromBody.StorkItme;
-using StorkItmeServer.Handler;
+using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Model;
 using StorkItmeServer.Model.DTO;
 using StorkItmeServer.Server.Interface;

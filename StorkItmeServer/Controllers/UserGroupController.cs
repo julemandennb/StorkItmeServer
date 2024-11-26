@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StorkItmeServer.Database;
 using StorkItmeServer.Model.DTO;
-using StorkItmeServer.Handler;
+using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Model;
 using System;
 using System.Collections.Generic;
@@ -22,18 +22,16 @@ namespace StorkItmeServer.Controllers
     {
         private readonly ILogger<UserGroupController> _logger;
         private readonly RoleAuthorizationHandler _roleAuthorizationHandler;
-        private readonly UserManager<User> _userManager;
 
         private readonly IUserGroupServ _userGroupServ;
         private readonly IStorkItmeServ _storkItmeServ;
         private readonly IUserServ _userServ;
 
 
-        public UserGroupController(ILogger<UserGroupController> logger,UserManager<User> userManager,IUserGroupServ userGroupServ, IStorkItmeServ storkItmeServ, IUserServ userServ)
+        public UserGroupController(ILogger<UserGroupController> logger,IUserGroupServ userGroupServ, IStorkItmeServ storkItmeServ, IUserServ userServ)
         {
             _logger = logger;
             _roleAuthorizationHandler = new RoleAuthorizationHandler();
-            _userManager = userManager;
             _userGroupServ = userGroupServ;
             _storkItmeServ = storkItmeServ;
             _userServ = userServ;
@@ -46,7 +44,7 @@ namespace StorkItmeServer.Controllers
             try
             {
 
-                var user = await _userManager.GetUserAsync(User);
+                var user = await _userServ.GetByClaimsPrincipal(User);
                 var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
                 List<UserGroupDTO> userGroups = new List<UserGroupDTO>();
 
@@ -84,7 +82,7 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
-                var user = await _userManager.GetUserAsync(User);
+                var user = await _userServ.GetByClaimsPrincipal(User);
                 var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
 
                 UserGroup userGroup = _userGroupServ.Get(id);
@@ -170,19 +168,19 @@ namespace StorkItmeServer.Controllers
             {
                 _logger.LogError(ex, "An error occurred while retrieving user groups.");
                 return StatusCode(500, "Internal server error");
-    }
+            }
 
-}
+        }
 
         [HttpPut("AddUser")]
         [Authorize(Policy = "Manager")]
-        public IActionResult AddUser([FromBody] UserGroupIdUserIdFromBody fromBody)
+        public async Task<IActionResult> AddUser([FromBody] UserGroupIdUserIdFromBody fromBody)
         {
             try
             {
                 UserGroup userGroup = _userGroupServ.Get(fromBody.UserGroupId);
 
-                User user = _userServ.Get(fromBody.UserId);
+                User user = await _userServ.Get(fromBody.UserId);
 
                 if (user != null && userGroup != null)
                 {
@@ -240,13 +238,13 @@ namespace StorkItmeServer.Controllers
 
         [HttpDelete("RemoveUser")]
         [Authorize(Policy = "Manager")]
-        public IActionResult RemoveUser([FromBody] UserGroupIdUserIdFromBody fromBody)
+        public async Task<IActionResult> RemoveUser([FromBody] UserGroupIdUserIdFromBody fromBody)
         {
             try
             {
                 UserGroup userGroup = _userGroupServ.Get(fromBody.UserGroupId);
 
-                User user = _userServ.Get(fromBody.UserId);
+                User user = await _userServ.Get(fromBody.UserId);
 
 
                 if (user != null && userGroup != null)

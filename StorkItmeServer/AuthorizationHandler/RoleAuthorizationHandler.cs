@@ -2,7 +2,7 @@
 using StorkItmeServer.Model;
 using System.Security.Claims;
 
-namespace StorkItmeServer.Handler
+namespace StorkItmeServer.AuthorizationHandler
 {
     public class RoleAuthorizationHandler : AuthorizationHandler<RoleRequirement>
     {
@@ -33,22 +33,6 @@ namespace StorkItmeServer.Handler
                     return Task.CompletedTask;
                 }
 
-                // var roleHierarchy = new[] { "Member", "Manager", "Admin" };
-
-                // Check if the user has any of the roles in the hierarchy
-                //foreach (var role in roleHierarchy)
-                //{
-                //    if (context.User.IsInRole(role))
-                //    {
-                //        // If the user's role is at least the required role or higher in hierarchy
-                //        if (this.roleHierarchy.Contains(requirement.RequiredRole) &&
-                //            Array.IndexOf(this.roleHierarchy, role) >= Array.IndexOf(this.roleHierarchy, requirement.RequiredRole))
-                //        {
-                //            context.Succeed(requirement);
-                //            return Task.CompletedTask;
-                //        }
-                //    }
-                //}
             }
 
             return Task.CompletedTask;

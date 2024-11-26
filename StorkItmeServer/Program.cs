@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
 using StorkItmeServer.Database;
-using StorkItmeServer.Handler;
+using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Model;
 using StorkItmeServer.Overrides;
 using StorkItmeServer.Server;

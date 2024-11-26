@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
-using StorkItmeServer.Handler;
+using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Model;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
@@ -30,28 +30,23 @@ namespace StorkItmeServer.Controllers
         private readonly ILogger<StorkItmeController> _logger;
         private readonly IUserServ _userServ;
         private readonly RoleAuthorizationHandler _roleAuthorizationHandler;
-        private readonly UserManager<User> _userManager;
         private readonly RoleManager<Role> _roleManager;
-        private readonly IUserStore<User> _userStore;
-        private readonly LinkGenerator _linkGenerator;
         private readonly IEmailSender<User> _emailSender;
         private readonly SignInManager<User> _signInManager;
         private readonly TimeProvider _timeProvider;
         private readonly IOptionsMonitor<BearerTokenOptions> _bearerTokenOptions;
 
 
-        public UserController(ILogger<StorkItmeController> logger, IUserServ userServ, UserManager<User> userManager,
-            RoleManager<Role> roleManager, IUserStore<User> userStore,
-            LinkGenerator linkGenerator, IEmailSender<User> emailSender, SignInManager<User> signInManager,
+        public UserController(ILogger<StorkItmeController> logger, IUserServ userServ,
+            RoleManager<Role> roleManager,
+             IEmailSender<User> emailSender, SignInManager<User> signInManager,
             TimeProvider timeProvider, IOptionsMonitor<BearerTokenOptions> optionsMonitor) {
 
             _logger = logger;
             _userServ = userServ;
             _roleAuthorizationHandler = new RoleAuthorizationHandler();
-            _userManager = userManager;
+
             _roleManager = roleManager;
-            _userStore = userStore;
-            _linkGenerator = linkGenerator;
             _emailSender = emailSender;
             _signInManager = signInManager;
             _timeProvider = timeProvider;
@@ -65,24 +60,24 @@ namespace StorkItmeServer.Controllers
         public async Task<Results<Ok, ValidationProblem>> register([FromBody] RegisterRequest registration)
         {
 
-            var emailStore = (IUserEmailStore<User>)_userStore;
             var email = registration.Email;
 
             var user = new User();
-            await _userStore.SetUserNameAsync(user, email, CancellationToken.None);
-            await emailStore.SetEmailAsync(user, email, CancellationToken.None);
-            var result = await _userManager.CreateAsync(user, registration.Password);
+            user.UserName = email;
+            user.Email = email;
+
+            var result = await _userServ.Create(user, registration.Password);
 
             if (!result.Succeeded)
             {
                 return CreateValidationProblem(result);
             }
 
-            await _userManager.AddToRoleAsync(user, "Read");
+            await _userServ.AddToRole(user, "Read");
 
 
             // Generate email confirmation token
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var token = await _userServ.GenerateEmailConfirmationTokenAsync(user);
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
             // Create confirmation link
@@ -101,7 +96,7 @@ namespace StorkItmeServer.Controllers
         [HttpGet("confirmEmail")]
         public async Task<Results<ContentHttpResult, UnauthorizedHttpResult>> confirmEmail([FromBody] string userId, [FromQuery] string code, [FromQuery] string? changedEmail) 
         {
-            if (await _userManager.FindByIdAsync(userId) is not { } user)
+            if (await _userServ.Get(userId) is not { } user)
             {
                 // We could respond with a 404 instead of a 401 like Identity UI, but that feels like unnecessary information.
                 return TypedResults.Unauthorized();
@@ -120,17 +115,17 @@ namespace StorkItmeServer.Controllers
 
             if (string.IsNullOrEmpty(changedEmail))
             {
-                result = await _userManager.ConfirmEmailAsync(user, code);
+                result = await _userServ.ConfirmEmailAsync(user, code);
             }
             else
             {
                 // As with Identity UI, email and user name are one and the same. So when we update the email,
                 // we need to update the user name.
-                result = await _userManager.ChangeEmailAsync(user, changedEmail, code);
+                result = await _userServ.ChangeEmailAsync(user, changedEmail, code);
 
                 if (result.Succeeded)
                 {
-                    result = await _userManager.SetUserNameAsync(user, changedEmail);
+                    result = await _userServ.SetUserNameAsync(user, changedEmail);
                 }
             }
 
@@ -199,13 +194,13 @@ namespace StorkItmeServer.Controllers
         public async Task<Ok>  resendConfirmationEmail
         ([FromBody] ResendConfirmationEmailRequest resendRequest)
         {
-            if (await _userManager.FindByEmailAsync(resendRequest.Email) is not { } user)
+            if (await _userServ.GetByEmail(resendRequest.Email) is not { } user)
             {
                 return TypedResults.Ok();
             }
 
             // Generate email confirmation token
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var token = await _userServ.GenerateEmailConfirmationTokenAsync(user);
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
             // Create confirmation link
@@ -225,11 +220,11 @@ namespace StorkItmeServer.Controllers
         public async Task<Results<Ok, ValidationProblem>> forgotPassword
         ([FromBody] ForgotPasswordRequest resetRequest)
         {
-            var user = await _userManager.FindByEmailAsync(resetRequest.Email);
+            var user = await _userServ.GetByEmail(resetRequest.Email);
 
-            if (user is not null && await _userManager.IsEmailConfirmedAsync(user))
+            if (user is not null && await _userServ.IsEmailConfirmedAsync(user))
             {
-                var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var code = await _userServ.GeneratePasswordResetTokenAsync(user);
                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
 
                 await _emailSender.SendPasswordResetCodeAsync(user, resetRequest.Email, HtmlEncoder.Default.Encode(code));
@@ -244,22 +239,22 @@ namespace StorkItmeServer.Controllers
         public async Task<Results<Ok, ValidationProblem>> resetPassword
         ([FromBody] ResetPasswordRequest resetRequest)
         {
-            var user = await _userManager.FindByEmailAsync(resetRequest.Email);
+            var user = await _userServ.GetByEmail(resetRequest.Email);
 
-            if (user is null || !(await _userManager.IsEmailConfirmedAsync(user)))
+            if (user is null || !(await _userServ.IsEmailConfirmedAsync(user)))
             {
-                return CreateValidationProblem(IdentityResult.Failed(_userManager.ErrorDescriber.InvalidToken()));
+                return CreateValidationProblem(IdentityResult.Failed(_userServ.ErrorDescriberInvalidToken()));
             }
 
             IdentityResult result;
             try
             {
                 var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(resetRequest.ResetCode));
-                result = await _userManager.ResetPasswordAsync(user, code, resetRequest.NewPassword);
+                result = await _userServ.ResetPasswordAsync(user, code, resetRequest.NewPassword);
             }
             catch (FormatException)
             {
-                result = IdentityResult.Failed(_userManager.ErrorDescriber.InvalidToken());
+                result = IdentityResult.Failed(_userServ.ErrorDescriberInvalidToken());
             }
 
             if (!result.Succeeded)
@@ -276,11 +271,11 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
-                var user = await _userManager.GetUserAsync(User);
+                var user = await _userServ.GetByClaimsPrincipal(User);
 
                 if (user is not null)
                 {
-                    var roleName = await _userManager.GetRolesAsync(user);
+                    var roleName = await _userServ.GetRoles(user);
                     if (roleName.Count > 0)
                     {
                         Role role = await _roleManager.FindByNameAsync(roleName.FirstOrDefault());

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StorkItmeServer.Controllers;
 using StorkItmeServer.Database;
-using StorkItmeServer.Handler;
+using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Model;
 using StorkItmeServer.Model.DTO;
 using StorkItmeServer.Server.Interface;
