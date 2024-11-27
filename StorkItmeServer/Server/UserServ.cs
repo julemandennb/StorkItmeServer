@@ -84,7 +84,7 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
+                ErrorCatch(ex, "Get User by ClaimsPrincipal");
                 return null;
             }
         }
@@ -99,7 +99,7 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
+                ErrorCatch(ex, "Create User");
                 return IdentityResult.Failed(new IdentityError { Description = "An error occurred while creating the user." });
             }
         }
@@ -114,7 +114,7 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
+                ErrorCatch(ex, "add role to User");
                 return false;
             }
         }
@@ -129,7 +129,7 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
+                ErrorCatch(ex, "Generate Email Confirmation Token");
                 return "";
             }
         }
@@ -144,8 +144,8 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
-                return IdentityResult.Failed(new IdentityError { Description = "An error occurred while creating the user." });
+                ErrorCatch(ex, "Confirm Email");
+                return IdentityResult.Failed(new IdentityError { Description = "An error occurred while Confirm Email." });
             }
         }
 
@@ -159,23 +159,23 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
-                return IdentityResult.Failed(new IdentityError { Description = "An error occurred while creating the user." });
+                ErrorCatch(ex, "Change Email");
+                return IdentityResult.Failed(new IdentityError { Description = "An error occurred while Change Email" });
             }
         }
 
-        public async Task<IdentityResult?> SetUserNameAsync(User user, string? changedEmail)
+        public async Task<IdentityResult?> SetUserNameAsync(User user, string? userName)
         {
             try
             {
-                IdentityResult identityResult = await _userManager.SetUserNameAsync(user, changedEmail);
+                IdentityResult identityResult = await _userManager.SetUserNameAsync(user, userName);
 
                 return identityResult;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
-                return IdentityResult.Failed(new IdentityError { Description = "An error occurred while creating the user." });
+                ErrorCatch(ex, "Set User Name");
+                return IdentityResult.Failed(new IdentityError { Description = "An error occurred while Set User Name" });
             }
         }
 
@@ -188,7 +188,7 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
+                ErrorCatch(ex, "Is Email Confirmed");
                 return false;
             }
         }
@@ -202,7 +202,7 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
+                ErrorCatch(ex, "Generate Password Reset Token");
                 return "";
             }
         }
@@ -217,8 +217,8 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
-                return IdentityResult.Failed(new IdentityError { Description = "An error occurred while creating the user." });
+                ErrorCatch(ex, "Reset Password");
+                return IdentityResult.Failed(new IdentityError { Description = "An error occurred while Reset Password on user." });
             }
         }
 
@@ -232,7 +232,7 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get User by Email");
+                ErrorCatch(ex, "Get Roles");
                 return [];
             }
         }
@@ -248,7 +248,7 @@ namespace StorkItmeServer.Server
             if (_logger != null)
                 _logger.LogError(ex, $"An error occurred while {funName}");
             else
-                Console.WriteLine(ex);
+                throw new Exception(funName, ex);
         }
     }
 }

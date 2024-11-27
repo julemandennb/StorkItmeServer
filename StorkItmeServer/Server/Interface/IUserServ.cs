@@ -22,7 +22,7 @@ namespace StorkItmeServer.Server.Interface
 
         public Task<IdentityResult?> ChangeEmailAsync(User user, string? changedEmail, string code);
 
-        public Task<IdentityResult?> SetUserNameAsync(User user, string? changedEmail);
+        public Task<IdentityResult?> SetUserNameAsync(User user, string? userName);
 
         public Task<bool> IsEmailConfirmedAsync(User user);
 

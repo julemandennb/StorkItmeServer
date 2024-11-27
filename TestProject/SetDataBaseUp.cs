@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Database;
 using StorkItmeServer.Model;
 using System;
@@ -15,9 +16,12 @@ namespace TestProject
 
         private string databaseClassName = "";
 
+        private RoleAuthorizationHandler roleAuthorizationHandler;
+
         internal SetDataBaseUp(string databaseClassName)
         {
             this.databaseClassName = databaseClassName;
+            this.roleAuthorizationHandler = new RoleAuthorizationHandler();
         }
 
 
@@ -39,20 +43,25 @@ namespace TestProject
 
                 context.Users.AddRange(Users());
 
+                context.Roles.AddRange(AddRole());
+
                 context.SaveChanges();
             }
 
             return new DataContext(options);
         }
 
-
+        private List<Role> AddRole()
+        {
+            return roleAuthorizationHandler.roleHierarchy.Select(x => new Role(x, x)).ToList();
+        }
   
         internal List<User> Users()
         {
             List<User> users = new List<User>
             {
-                new User(){ UserName ="User1",Email="User1@test.dk"},
-                new User(){ UserName ="User2",Email="User2@test.dk"},
+                new User(){ UserName ="User1",Email="user1@test.dk"},
+                new User(){ UserName ="User2",Email="user2@test.dk"},
             };
 
             return users;
