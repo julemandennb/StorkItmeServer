@@ -52,6 +52,41 @@ namespace StorkItmeServer.Server
             }
         }
 
+        public IQueryable<StorkItme>? GetAll7DaysBeforeBestBy()
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                var inSevenDays = now.AddDays(7);
+
+                IQueryable<StorkItme> StorkItmes = _context.StorkItme.Where(x => x.BestBy >= now && x.BestBy <= inSevenDays);
+
+                return StorkItmes;
+            }
+            catch (Exception ex)
+            {
+                ErrorCatch(ex, "GetAll 7 Days Before BestBy storkItme");
+                return null;
+            }
+        }
+
+        public IQueryable<StorkItme>? GetAllAfterBestBy()
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+
+                IQueryable<StorkItme> StorkItmes = _context.StorkItme.Where(x => x.BestBy <= now);
+
+                return StorkItmes;
+            }
+            catch (Exception ex)
+            {
+                ErrorCatch(ex, "GetAll after BestBy storkItme");
+                return null;
+            }
+        }
+
         public StorkItme? Create(StorkItme storkItme)
         {
             try

@@ -8,6 +8,10 @@ namespace StorkItmeServer.Server.Interface
 
         public IQueryable<StorkItme>? GetAll();
 
+        public IQueryable<StorkItme>? GetAll7DaysBeforeBestBy();
+
+        public IQueryable<StorkItme>? GetAllAfterBestBy();
+
         public StorkItme? Create(StorkItme storkItme);
 
         public StorkItme? CreateWithoutSave(StorkItme storkItme);

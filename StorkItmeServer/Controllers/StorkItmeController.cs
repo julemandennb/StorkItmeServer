@@ -115,6 +115,77 @@ namespace StorkItmeServer.Controllers
             }
         }
 
+        [HttpGet("GetAll7DaysBeforeBestBy")]
+        [Authorize(Policy = "Read")]
+        public async Task<IActionResult> GetAll7DaysBeforeBestBy(bool GetAllStorkItme = false)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
+
+                bool roleCheck = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles);
+
+                List<StorkItmeDTO> storkItmeDTOs = new List<StorkItmeDTO>();
+
+                IQueryable<StorkItme> StorkItmes = _storkItmeServer.GetAll7DaysBeforeBestBy();
+
+                if (StorkItmes is not null)
+                {
+
+                    if (roleCheck && GetAllStorkItme)
+                        storkItmeDTOs = await StorkItmes.Select(x => new StorkItmeDTO(x) { UserGroup = new UserGroupDTO(x.UserGroup) }).ToListAsync();
+                    else
+                    {
+                        storkItmeDTOs = await StorkItmes.Where(g => user.UserGroups.Contains(g.UserGroup)).Select(b => new StorkItmeDTO(b) { UserGroup = new UserGroupDTO(b.UserGroup) }).ToListAsync();
+                    }
+                }
+
+                return Ok(storkItmeDTOs);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving user groups.");
+                return StatusCode(500, "Internal server error");
+            }
+
+        }
+
+        [HttpGet("GetAllAfterBestBy")]
+        [Authorize(Policy = "Read")]
+        public async Task<IActionResult> GetAllAfterBestBy(bool GetAllStorkItme = false)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
+
+                bool roleCheck = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles);
+
+                List<StorkItmeDTO> storkItmeDTOs = new List<StorkItmeDTO>();
+
+                IQueryable<StorkItme> StorkItmes = _storkItmeServer.GetAllAfterBestBy();
+
+                if (StorkItmes is not null)
+                {
+
+                    if (roleCheck && GetAllStorkItme)
+                        storkItmeDTOs = await StorkItmes.Select(x => new StorkItmeDTO(x) { UserGroup = new UserGroupDTO(x.UserGroup) }).ToListAsync();
+                    else
+                    {
+                        storkItmeDTOs = await StorkItmes.Where(g => user.UserGroups.Contains(g.UserGroup)).Select(b => new StorkItmeDTO(b) { UserGroup = new UserGroupDTO(b.UserGroup) }).ToListAsync();
+                    }
+                }
+
+                return Ok(storkItmeDTOs);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving user groups.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         [HttpPost("Create")]
         [Authorize(Policy = "Member")]
         public IActionResult Create([FromBody] StorkItmeFromBody storkItmeFromBody)
