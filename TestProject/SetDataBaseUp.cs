@@ -81,14 +81,20 @@ namespace TestProject
 
         internal List<StorkItme> StorkItmes()
         {
-            DateTime dateTime = new DateTime().AddYears(1);
+            DateTime dateTime = DateTime.Now.AddYears(1);
+
+            //one day add to now 
+            DateTime dateTimeOneday = DateTime.Now.AddDays(1);
+
+            DateTime dateTimeMinusOneday = DateTime.Now.AddDays(-1);
+
 
             List<StorkItme> storkItmess = new List<StorkItme>
             {
                 new StorkItme() { UserGroupId = 1, Name = "den har id 1", Stork = 1, BestBy = dateTime, Description = "den har id 1", Type = "fefs", ImgUrl = "" },
                 new StorkItme() { UserGroupId = 1, Name = "den har id 2", Stork = 1, BestBy = dateTime, Description = "den har id 2", Type = "fefs", ImgUrl = "" },
-                new StorkItme() { UserGroupId = 1, Name = "den har id 3", Stork = 1, BestBy = dateTime, Description = "den har id 3", Type = "fefs", ImgUrl = "" },
-                new StorkItme() { UserGroupId = 1, Name = "den har id 4", Stork = 1, BestBy = dateTime, Description = "den har id 4", Type = "fefs", ImgUrl = "" }
+                new StorkItme() { UserGroupId = 1, Name = "den har id 3", Stork = 1, BestBy = dateTimeMinusOneday, Description = "den har id 3", Type = "fefs", ImgUrl = "" },
+                new StorkItme() { UserGroupId = 1, Name = "den har id 4", Stork = 1, BestBy = dateTimeOneday, Description = "den har id 4", Type = "fefs", ImgUrl = "" }
             };
 
             return storkItmess;

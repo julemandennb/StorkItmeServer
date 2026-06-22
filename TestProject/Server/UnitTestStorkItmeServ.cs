@@ -53,6 +53,40 @@ namespace TestProject.Server
         }
 
         [Fact]
+        public void TestGetAll7DaysBeforeBestBy()
+        {
+
+            using (var context = _setDataBaseUp.Up("GetAll7DaysBeforeBestBy"))
+            {
+                StorkItmeServ storkItmeServ = new StorkItmeServ(null, context);
+                IQueryable<StorkItme> storkItmes = storkItmeServ.GetAll7DaysBeforeBestBy();
+                Assert.NotNull(storkItmes);
+
+                Assert.Equal(1, storkItmes.Count());
+                var storkItmesList = storkItmes.ToList();
+                Assert.Equal("den har id 4", storkItmesList[0].Name);
+            }
+
+        }
+
+        [Fact]
+        public void TestGetAllAfterBestBy()
+        {
+
+            using (var context = _setDataBaseUp.Up("GetAll7DaysBeforeBestBy"))
+            {
+                StorkItmeServ storkItmeServ = new StorkItmeServ(null, context);
+                IQueryable<StorkItme> storkItmes = storkItmeServ.GetAllAfterBestBy();
+                Assert.NotNull(storkItmes);
+
+                Assert.Equal(1, storkItmes.Count());
+                var storkItmesList = storkItmes.ToList();
+                Assert.Equal("den har id 3", storkItmesList[0].Name);
+            }
+
+        }
+
+        [Fact]
         public void TestCreate()
         {
 
