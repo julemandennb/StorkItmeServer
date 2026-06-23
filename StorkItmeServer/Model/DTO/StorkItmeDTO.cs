@@ -18,6 +18,12 @@ namespace StorkItmeServer.Model.DTO
 
         public string ImgUrl { get; set; }
 
+        public string storeLocation { get; set; }
+
+        public string ItemNumber { get; set; }
+
+        public string EAN { get; set; }
+
         public  UserGroupDTO UserGroup { get; set; }
 
         public StorkItmeDTO() { }
@@ -31,6 +37,9 @@ namespace StorkItmeServer.Model.DTO
             BestBy = storkItme.BestBy;
             Stork = storkItme.Stork;
             ImgUrl = storkItme.ImgUrl;
+            storeLocation = storkItme.storeLocation;
+            ItemNumber = storkItme.ItemNumber;
+            EAN = storkItme.EAN;
         }
     }
 }

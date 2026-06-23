@@ -22,6 +22,12 @@ namespace StorkItmeServer.Model
 
         public string ImgUrl { get; set; }
 
+        public string storeLocation { get; set; }
+
+        public string ItemNumber { get; set; }
+
+        public string EAN { get; set; }
+
         public int UserGroupId { get; set; }
 
         public virtual UserGroup UserGroup { get; set; } = null!;

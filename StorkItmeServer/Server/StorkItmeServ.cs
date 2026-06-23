@@ -41,7 +41,7 @@ namespace StorkItmeServer.Server
         {
             try
             {
-                IQueryable<StorkItme> StorkItmes = _context.StorkItme;
+                IQueryable<StorkItme> StorkItmes = _context.StorkItme.OrderBy(x=> x.Id);
 
                  return StorkItmes;
             }

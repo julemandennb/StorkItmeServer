@@ -43,6 +43,13 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
+
+                if(id == 0 || id < 0 || id == null)
+                {
+                    _logger.LogWarning("Invalid ID provided: {Id}", id);
+                    return BadRequest("Invalid ID provided.");
+                }
+
                 var user = await _userManager.GetUserAsync(User);
                 var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
 
@@ -211,8 +218,10 @@ namespace StorkItmeServer.Controllers
                     Type = storkItmeFromBody.Type,
                     BestBy = storkItmeFromBody.BestBy,
                     Stork = storkItmeFromBody.Stork,
-                    ImgUrl = storkItmeFromBody.ImgUrl,
                     UserGroupId = userGroup.Id,
+                    storeLocation = storkItmeFromBody.storeLocation,
+                    ItemNumber = storkItmeFromBody.ItemNumber,
+                    EAN = storkItmeFromBody.EAN
                 };
 
                 storkItme = _storkItmeServer.Create(storkItme);
@@ -238,7 +247,7 @@ namespace StorkItmeServer.Controllers
 
         [HttpPut("Updata")]
         [Authorize(Policy = "Member")]
-        public IActionResult Updata(int id , [FromBody] StorkItmeFromBody storkItmeFromBody)
+        public IActionResult Updata(int id , [FromBody] StorkItmeFromUpdateBody storkItmeFromBody)
         {
 
             try
@@ -250,18 +259,21 @@ namespace StorkItmeServer.Controllers
                 {
                     bool error = false;
 
-                    storkItme.Name = storkItmeFromBody.Name;
-                    storkItme.Description = storkItmeFromBody.Description;
-                    storkItme.Type = storkItmeFromBody.Type;
-                    storkItme.BestBy = storkItmeFromBody.BestBy;
-                    storkItme.Stork = storkItmeFromBody.Stork;
+                    storkItme.Name = storkItmeFromBody.Name ?? storkItme.Name;
+                    storkItme.Description = storkItmeFromBody.Description ?? storkItme.Description;
+                    storkItme.Type = storkItmeFromBody.Type ?? storkItme.Type;
+                    storkItme.BestBy = storkItmeFromBody.BestBy ?? storkItme.BestBy;
+                    storkItme.Stork = storkItmeFromBody.Stork ?? storkItme.Stork;
 
-                    storkItme.ImgUrl = storkItmeFromBody.ImgUrl;
+                    storkItme.storeLocation = storkItmeFromBody.storeLocation ?? storkItme.storeLocation;
+                    storkItme.ItemNumber = storkItmeFromBody.ItemNumber ?? storkItme.ItemNumber;
+                    storkItme.EAN = storkItmeFromBody.EAN ?? storkItme.EAN;
 
 
-                    if (storkItme.UserGroupId != storkItmeFromBody.UserGroupId)
+
+                    if (storkItmeFromBody.UserGroupId is int userGroupId && storkItme.UserGroupId != storkItmeFromBody.UserGroupId)
                     {
-                        UserGroup userGroup = _userGroupServ.Get(storkItmeFromBody.UserGroupId);
+                        UserGroup userGroup = _userGroupServ.Get(userGroupId);
 
                         if (userGroup is not null)
                         {

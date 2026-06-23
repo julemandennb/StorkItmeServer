@@ -12,8 +12,12 @@
 
         public int Stork { get; set; }
 
-        public string ImgUrl { get; set; } = "";
-
         public int UserGroupId { get; set; }
+
+        public string storeLocation { get; set; } = "";
+
+        public string ItemNumber { get; set; } = "";
+
+        public string EAN { get; set; } = "";
     }
 }
