@@ -28,8 +28,10 @@ namespace StorkItmeServer.Model
 
         public string ?EAN { get; set; }
 
-        public int UserGroupId { get; set; }
+        public int ?UserGroupId { get; set; }
 
         public virtual UserGroup UserGroup { get; set; } = null!;
+
+        public virtual StorkItmeGroup StorkItmeGroup { get; set;} = null!;
     }
 }

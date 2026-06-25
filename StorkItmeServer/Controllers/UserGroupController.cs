@@ -3,16 +3,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StorkItmeServer.Database;
-using StorkItmeServer.Model.DTO;
 using StorkItmeServer.AuthorizationHandler;
+using StorkItmeServer.Database;
+using StorkItmeServer.FromBody.UserGroup;
+using StorkItmeServer.Help;
 using StorkItmeServer.Model;
+using StorkItmeServer.Model.DTO;
+using StorkItmeServer.Server.Interface;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Net;
 using System.Security.Claims;
-using StorkItmeServer.FromBody.UserGroup;
-using StorkItmeServer.Server.Interface;
 
 namespace StorkItmeServer.Controllers
 {
@@ -45,7 +47,7 @@ namespace StorkItmeServer.Controllers
             {
 
                 var user = await _userServ.GetByClaimsPrincipal(User);
-                var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
+                var userRoles =  UserHelp.Role(User);
                 List<UserGroupDTO> userGroups = new List<UserGroupDTO>();
 
                 if (_roleAuthorizationHandler.CheckUserRole("Manager", userRoles) && ShowAllGroup)
@@ -83,7 +85,7 @@ namespace StorkItmeServer.Controllers
             try
             {
                 var user = await _userServ.GetByClaimsPrincipal(User);
-                var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
+                var userRoles = UserHelp.Role(User);
 
                 UserGroup userGroup = _userGroupServ.Get(id);
 

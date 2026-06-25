@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.FromBody.StorkItme;
+using StorkItmeServer.Help;
 using StorkItmeServer.Model;
 using StorkItmeServer.Model.DTO;
 using StorkItmeServer.Server.Interface;
@@ -46,10 +47,8 @@ namespace StorkItmeServer.Controllers
             try
             {
                 var user = await _userManager.GetUserAsync(User);
-                var roles = User.Claims
-                    .Where(c => c.Type == ClaimTypes.Role)
-                    .Select(c => c.Value)
-                    .ToList();
+              
+                var role = UserHelp.Role(User);
 
                 StorkItme? item = id != null
                     ? _storkItmeService.Get(id.Value)
@@ -62,7 +61,7 @@ namespace StorkItmeServer.Controllers
                 if (item == null)
                     return NotFound();
 
-                bool isManager = _roleAuthorizationHandler.CheckUserRole("Manager", roles.FirstOrDefault());
+                bool isManager = _roleAuthorizationHandler.CheckUserRole("Manager", role);
                 bool hasAccess = isManager || user.UserGroups.Contains(item.UserGroup);
 
                 if (!hasAccess)
@@ -70,7 +69,8 @@ namespace StorkItmeServer.Controllers
 
                 return Ok(new StorkItmeDTO(item)
                 {
-                    UserGroup = new UserGroupDTO(item.UserGroup)
+
+                     UserGroup = item.UserGroup != null ? new UserGroupDTO(item.UserGroup) : null
                 });
             }
             catch (Exception ex)
@@ -91,24 +91,23 @@ namespace StorkItmeServer.Controllers
             try
             {
                 var user = await _userManager.GetUserAsync(User);
-                var roles = User.Claims
-                    .Where(c => c.Type == ClaimTypes.Role)
-                    .Select(c => c.Value)
-                    .ToList();
+                var role = UserHelp.Role(User);
 
-                bool isManager = _roleAuthorizationHandler.CheckUserRole("Manager", roles.FirstOrDefault());
+                bool isManager = _roleAuthorizationHandler.CheckUserRole("Manager", role);
 
                 var items = _storkItmeService.GetAll();
 
                 if (!isManager || !includeAll)
                 {
                     var groupIds = user.UserGroups.Select(x => x.Id).ToList();
-                    items = items.Where(x => groupIds.Contains(x.UserGroupId)).ToList();
+                    items = items
+                        .Where(x => x.UserGroupId.HasValue && groupIds.Contains(x.UserGroupId.Value))
+                        .ToList();
                 }
 
                 var result = items.Select(x => new StorkItmeDTO(x)
                 {
-                    UserGroup = new UserGroupDTO(x.UserGroup)
+                    UserGroup = x.UserGroup != null ? new UserGroupDTO(x.UserGroup) : null
                 }).ToList();
 
                 return Ok(result);
@@ -130,10 +129,18 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
-                var userGroup = _userGroupService.Get(dto.UserGroupId);
+                int? userGroupId = null;
+                UserGroup? userGroup = null;
 
-                if (userGroup == null)
-                    return BadRequest("Invalid user group");
+                if (dto.UserGroupId.HasValue)
+                {
+                    userGroup = _userGroupService.Get(dto.UserGroupId.Value);
+
+                    if (userGroup == null)
+                        return BadRequest("Invalid user group");
+
+                    userGroupId = userGroup.Id;
+                }
 
                 var item = new StorkItme
                 {
@@ -142,7 +149,7 @@ namespace StorkItmeServer.Controllers
                     Type = dto.Type,
                     BestBy = dto.BestBy,
                     Stork = dto.Stork,
-                    UserGroupId = userGroup.Id,
+                    UserGroupId = userGroupId,
                     StoreLocation = dto.StoreLocation,
                     ItemNumber = dto.ItemNumber,
                     EAN = dto.EAN
@@ -155,7 +162,7 @@ namespace StorkItmeServer.Controllers
 
                 return Ok(new StorkItmeDTO(created)
                 {
-                    UserGroup = new UserGroupDTO(userGroup)
+                    UserGroup = userGroup != null ? new UserGroupDTO(userGroup) : null
                 });
             }
             catch (Exception ex)

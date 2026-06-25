@@ -7,6 +7,8 @@ namespace StorkItmeServer.Model
     {
         public virtual List<UserGroup> UserGroups { get; set; } = [];
 
+        public virtual List<StorkItmeGroup> StorkItmeGroups { get; set; } = [];
+
         [JsonIgnore]
         public override string? PasswordHash { get => base.PasswordHash; set => base.PasswordHash = value; }
 

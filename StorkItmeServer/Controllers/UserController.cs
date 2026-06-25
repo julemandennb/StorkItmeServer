@@ -302,6 +302,12 @@ namespace StorkItmeServer.Controllers
 
         }
 
+        [HttpPost("logout")]
+        public void Logud()
+        {
+            _signInManager.SignOutAsync();
+        }
+
 
 
         private static ValidationProblem CreateValidationProblem(IdentityResult result)
