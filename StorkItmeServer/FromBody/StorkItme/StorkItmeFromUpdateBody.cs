@@ -14,7 +14,7 @@
 
         public int ?UserGroupId { get; set; }
 
-        public string ?storeLocation { get; set; }
+        public string ? StoreLocation { get; set; }
 
         public string ?ItemNumber { get; set; }
 

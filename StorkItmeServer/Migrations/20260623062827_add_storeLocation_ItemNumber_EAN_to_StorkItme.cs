@@ -15,29 +15,54 @@ namespace StorkItmeServer.Migrations
                 schema: "storkitmeserver",
                 table: "StorkItme",
                 type: "text",
-                nullable: false,
-                defaultValue: "");
+                nullable: true,
+                defaultValue: null);
 
             migrationBuilder.AddColumn<string>(
                 name: "ItemNumber",
                 schema: "storkitmeserver",
                 table: "StorkItme",
                 type: "text",
-                nullable: false,
-                defaultValue: "");
+                nullable: true,
+                defaultValue: null);
 
             migrationBuilder.AddColumn<string>(
-                name: "storeLocation",
+                name: "StoreLocation",
                 schema: "storkitmeserver",
                 table: "StorkItme",
                 type: "text",
-                nullable: false,
-                defaultValue: "");
+                nullable: true,
+                defaultValue: null);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StorkItme_ItemNumber",
+                schema: "storkitmeserver",
+                table: "StorkItme",
+                column: "ItemNumber",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StorkItme_EAN",
+                schema: "storkitmeserver",
+                table: "StorkItme",
+                column: "EAN",
+                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+
+            migrationBuilder.DropIndex(
+               name: "IX_StorkItme_ItemNumber",
+               schema: "storkitmeserver",
+               table: "StorkItme");
+
+            migrationBuilder.DropIndex(
+                name: "IX_StorkItme_EAN",
+                schema: "storkitmeserver",
+                table: "StorkItme");
+
             migrationBuilder.DropColumn(
                 name: "EAN",
                 schema: "storkitmeserver",
@@ -49,7 +74,7 @@ namespace StorkItmeServer.Migrations
                 table: "StorkItme");
 
             migrationBuilder.DropColumn(
-                name: "storeLocation",
+                name: "StoreLocation",
                 schema: "storkitmeserver",
                 table: "StorkItme");
         }

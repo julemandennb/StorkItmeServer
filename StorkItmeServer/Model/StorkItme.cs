@@ -10,23 +10,23 @@ namespace StorkItmeServer.Model
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
-        public string Description { get; set; }
+        public required string Description { get; set; }
 
-        public string Type { get; set; }
+        public required string Type { get; set; }
 
         public DateTime BestBy { get; set; }
 
         public int Stork { get; set; }
 
-        public string ImgUrl { get; set; }
+        public string ?ImgUrl { get; set; }
 
-        public string storeLocation { get; set; }
+        public string ?StoreLocation { get; set; }
 
-        public string ItemNumber { get; set; }
+        public string ?ItemNumber { get; set; }
 
-        public string EAN { get; set; }
+        public string ?EAN { get; set; }
 
         public int UserGroupId { get; set; }
 

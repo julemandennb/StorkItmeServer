@@ -18,7 +18,7 @@ namespace StorkItmeServer.Model.DTO
 
         public string ImgUrl { get; set; }
 
-        public string storeLocation { get; set; }
+        public string StoreLocation { get; set; }
 
         public string ItemNumber { get; set; }
 
@@ -37,7 +37,7 @@ namespace StorkItmeServer.Model.DTO
             BestBy = storkItme.BestBy;
             Stork = storkItme.Stork;
             ImgUrl = storkItme.ImgUrl;
-            storeLocation = storkItme.storeLocation;
+            StoreLocation = storkItme.StoreLocation;
             ItemNumber = storkItme.ItemNumber;
             EAN = storkItme.EAN;
         }

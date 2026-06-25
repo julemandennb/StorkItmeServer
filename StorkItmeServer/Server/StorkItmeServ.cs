@@ -1,16 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using StorkItmeServer.Controllers;
+﻿using Microsoft.EntityFrameworkCore;
 using StorkItmeServer.Database;
-using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Model;
-using StorkItmeServer.Model.DTO;
 using StorkItmeServer.Server.Interface;
 
 namespace StorkItmeServer.Server
 {
-    public class StorkItmeServ: IStorkItmeServ
+    public class StorkItmeServ : IStorkItmeServ
     {
         private readonly ILogger<StorkItmeServ> _logger;
         private readonly DataContext _context;
@@ -19,73 +14,111 @@ namespace StorkItmeServer.Server
         {
             _logger = logger;
             _context = context;
-
         }
+
+        // ------------------------
+        // GET SINGLE ITEMS
+        // ------------------------
 
         public StorkItme? Get(int id)
         {
             try
             {
-                StorkItme storkItme = _context.StorkItme.FirstOrDefault(x => x.Id == id);
-
-                return storkItme == null ? null : storkItme;
+                return _context.StorkItme.FirstOrDefault(x => x.Id == id);
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get storkItme");
+                LogError(ex, "Get storkItme");
                 return null;
             }
         }
 
-        public IQueryable<StorkItme>? GetAll()
+        public StorkItme? GetFromItemNumber(string itemNumber)
         {
             try
             {
-                IQueryable<StorkItme> StorkItmes = _context.StorkItme.OrderBy(x=> x.Id);
-
-                 return StorkItmes;
+                return _context.StorkItme.FirstOrDefault(x => x.ItemNumber == itemNumber);
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "GetAll storkItme");
+                LogError(ex, "Get storkItme from ItemNumber");
                 return null;
             }
         }
 
-        public IQueryable<StorkItme>? GetAll7DaysBeforeBestBy()
+        public StorkItme? GetFromEAN(string ean)
+        {
+            try
+            {
+                return _context.StorkItme.FirstOrDefault(x => x.EAN == ean);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, "Get storkItme from EAN");
+                return null;
+            }
+        }
+
+        // ------------------------
+        // GET LISTS
+        // ------------------------
+
+        public List<StorkItme> GetAll()
+        {
+            try
+            {
+                return _context.StorkItme
+                    .Include(x => x.UserGroup)
+                    .OrderBy(x => x.Id)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, "GetAll storkItme");
+                return new List<StorkItme>();
+            }
+        }
+
+        public List<StorkItme> GetAll7DaysBeforeBestBy()
         {
             try
             {
                 var now = DateTime.UtcNow;
                 var inSevenDays = now.AddDays(7);
 
-                IQueryable<StorkItme> StorkItmes = _context.StorkItme.Where(x => x.BestBy >= now && x.BestBy <= inSevenDays);
-
-                return StorkItmes;
+                return _context.StorkItme
+                    .Include(x => x.UserGroup)
+                    .Where(x => x.BestBy >= now && x.BestBy <= inSevenDays)
+                    .ToList();
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "GetAll 7 Days Before BestBy storkItme");
-                return null;
+                LogError(ex, "GetAll 7 Days Before BestBy");
+                return new List<StorkItme>();
             }
         }
 
-        public IQueryable<StorkItme>? GetAllAfterBestBy()
+        public List<StorkItme> GetAllAfterBestBy()
         {
             try
             {
                 var now = DateTime.UtcNow;
 
-                IQueryable<StorkItme> StorkItmes = _context.StorkItme.Where(x => x.BestBy <= now);
-
-                return StorkItmes;
+                return _context.StorkItme
+                    .Include(x => x.UserGroup)
+                    .Where(x => x.BestBy <= now)
+                    .ToList();
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "GetAll after BestBy storkItme");
-                return null;
+                LogError(ex, "GetAll after BestBy");
+                return new List<StorkItme>();
             }
         }
+
+        // ------------------------
+        // CREATE
+        // ------------------------
 
         public StorkItme? Create(StorkItme storkItme)
         {
@@ -93,13 +126,11 @@ namespace StorkItmeServer.Server
             {
                 _context.StorkItme.Add(storkItme);
                 _context.SaveChanges();
-
                 return storkItme;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Create storkItme");
-
+                LogError(ex, "Create storkItme");
                 return null;
             }
         }
@@ -113,24 +144,26 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Create storkItme without save");
+                LogError(ex, "Create storkItme without save");
                 return null;
             }
         }
 
-        public bool Updata(StorkItme storkItme)
+        // ------------------------
+        // UPDATE
+        // ------------------------
+
+        public bool Update(StorkItme storkItme)
         {
             try
             {
                 _context.StorkItme.Update(storkItme);
                 _context.SaveChanges();
-
                 return true;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Updata storkItme");
-
+                LogError(ex, "Update storkItme");
                 return false;
             }
         }
@@ -144,25 +177,26 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Update storkItme without save");
+                LogError(ex, "Update storkItme without save");
                 return false;
             }
         }
+
+        // ------------------------
+        // DELETE
+        // ------------------------
 
         public bool Delete(StorkItme storkItme)
         {
             try
             {
                 _context.StorkItme.Remove(storkItme);
-
                 _context.SaveChanges();
-
                 return true;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Delete storkItme");
-
+                LogError(ex, "Delete storkItme");
                 return false;
             }
         }
@@ -176,7 +210,7 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Delete storkItme without save");
+                LogError(ex, "Delete storkItme without save");
                 return false;
             }
         }
@@ -186,15 +220,12 @@ namespace StorkItmeServer.Server
             try
             {
                 _context.StorkItme.RemoveRange(storkItmes);
-
                 _context.SaveChanges();
-
                 return true;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Delete storkItme");
-
+                LogError(ex, "Remove range storkItme");
                 return false;
             }
         }
@@ -208,19 +239,18 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Remove range of storkItmes without save");
+                LogError(ex, "Remove range storkItme without save");
                 return false;
             }
         }
 
+        // ------------------------
+        // LOGGING
+        // ------------------------
 
-        private void ErrorCatch(Exception ex,string funName)
+        private void LogError(Exception ex, string operation)
         {
-            if(_logger != null)
-                _logger.LogError(ex, $"An error occurred while {funName}");
-            else
-                Console.WriteLine(ex);
+            _logger.LogError(ex, "An error occurred while {Operation}", operation);
         }
-
     }
 }

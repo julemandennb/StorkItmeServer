@@ -1,17 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using StorkItmeServer.Database;
-using StorkItmeServer.FromBody.StorkItme;
 using StorkItmeServer.AuthorizationHandler;
+using StorkItmeServer.FromBody.StorkItme;
 using StorkItmeServer.Model;
 using StorkItmeServer.Model.DTO;
 using StorkItmeServer.Server.Interface;
-using System.Linq;
 using System.Security.Claims;
-using System.Xml.Linq;
 
 namespace StorkItmeServer.Controllers
 {
@@ -23,284 +18,202 @@ namespace StorkItmeServer.Controllers
         private readonly RoleAuthorizationHandler _roleAuthorizationHandler;
         private readonly UserManager<User> _userManager;
 
-        private readonly IStorkItmeServ _storkItmeServer;
-        private readonly IUserGroupServ _userGroupServ;
+        private readonly IStorkItmeServ _storkItmeService;
+        private readonly IUserGroupServ _userGroupService;
 
-        public StorkItmeController(ILogger<StorkItmeController> logger, UserManager<User> userManager, IStorkItmeServ storkItmeServer, IUserGroupServ userGroupServ)
+        public StorkItmeController(
+            ILogger<StorkItmeController> logger,
+            UserManager<User> userManager,
+            IStorkItmeServ storkItmeService,
+            IUserGroupServ userGroupService)
         {
             _logger = logger;
-            _roleAuthorizationHandler = new RoleAuthorizationHandler();
             _userManager = userManager;
+            _storkItmeService = storkItmeService;
+            _userGroupService = userGroupService;
 
-            _storkItmeServer = storkItmeServer;
-            _userGroupServ = userGroupServ;
-
+            _roleAuthorizationHandler = new RoleAuthorizationHandler();
         }
+
+        // ------------------------
+        // GET SINGLE ITEM
+        // ------------------------
 
         [HttpGet("Get")]
         [Authorize(Policy = "Read")]
-        public async Task<IActionResult> GetAsync(int id)
+        public async Task<IActionResult> GetAsync(int? id, string? itemNumber, string? ean)
         {
             try
             {
-
-                if(id == 0 || id < 0 || id == null)
-                {
-                    _logger.LogWarning("Invalid ID provided: {Id}", id);
-                    return BadRequest("Invalid ID provided.");
-                }
-
                 var user = await _userManager.GetUserAsync(User);
-                var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
+                var roles = User.Claims
+                    .Where(c => c.Type == ClaimTypes.Role)
+                    .Select(c => c.Value)
+                    .ToList();
 
-                StorkItme storkItme = _storkItmeServer.Get(id);
+                StorkItme? item = id != null
+                    ? _storkItmeService.Get(id.Value)
+                    : itemNumber != null
+                        ? _storkItmeService.GetFromItemNumber(itemNumber)
+                        : ean != null
+                            ? _storkItmeService.GetFromEAN(ean)
+                            : null;
 
-                if (storkItme is not null)
+                if (item == null)
+                    return NotFound();
+
+                bool isManager = _roleAuthorizationHandler.CheckUserRole("Manager", roles.FirstOrDefault());
+                bool hasAccess = isManager || user.UserGroups.Contains(item.UserGroup);
+
+                if (!hasAccess)
+                    return Forbid();
+
+                return Ok(new StorkItmeDTO(item)
                 {
-
-                    bool roleCheck = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles);
-
-                    bool HavRightGroups = user.UserGroups.Contains(storkItme.UserGroup);
-
-                    if (roleCheck || HavRightGroups)
-                    {
-
-                        StorkItmeDTO storkItmeDTO = new StorkItmeDTO(storkItme)
-                        {
-                            UserGroup = new UserGroupDTO(storkItme.UserGroup)
-                        };
-
-                        return Ok(storkItmeDTO);
-                    }
-                }
-
-                return BadRequest();
+                    UserGroup = new UserGroupDTO(item.UserGroup)
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving user groups.");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error in GetAsync");
+                return StatusCode(500);
             }
-
-
         }
 
-        [HttpGet("Getall")]
+        // ------------------------
+        // GET ALL
+        // ------------------------
+
+        [HttpGet("GetAll")]
         [Authorize(Policy = "Read")]
-        public async Task<IActionResult> GetAll(bool GetAllStorkItme = false)
-        {
-            try
-            {
-
-                var user = await _userManager.GetUserAsync(User);
-                var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
-
-                bool roleCheck = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles);
-
-                List<StorkItmeDTO> storkItmeDTOs = new List<StorkItmeDTO>();
-
-                IQueryable<StorkItme> StorkItmes = _storkItmeServer.GetAll();
-
-                if (StorkItmes is not null)
-                {
-
-                    if (roleCheck && GetAllStorkItme)
-                        storkItmeDTOs = await StorkItmes.Select(x => new StorkItmeDTO(x) { UserGroup = new UserGroupDTO(x.UserGroup) }).ToListAsync();
-                    else
-                    {
-                        storkItmeDTOs = await StorkItmes.Where(g => user.UserGroups.Contains(g.UserGroup)).Select(b => new StorkItmeDTO(b) { UserGroup = new UserGroupDTO(b.UserGroup) }).ToListAsync();
-                    }
-                }
-
-                return Ok(storkItmeDTOs);
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving user groups.");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        [HttpGet("GetAll7DaysBeforeBestBy")]
-        [Authorize(Policy = "Read")]
-        public async Task<IActionResult> GetAll7DaysBeforeBestBy(bool GetAllStorkItme = false)
+        public async Task<IActionResult> GetAll(bool includeAll = false)
         {
             try
             {
                 var user = await _userManager.GetUserAsync(User);
-                var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
+                var roles = User.Claims
+                    .Where(c => c.Type == ClaimTypes.Role)
+                    .Select(c => c.Value)
+                    .ToList();
 
-                bool roleCheck = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles);
+                bool isManager = _roleAuthorizationHandler.CheckUserRole("Manager", roles.FirstOrDefault());
 
-                List<StorkItmeDTO> storkItmeDTOs = new List<StorkItmeDTO>();
+                var items = _storkItmeService.GetAll();
 
-                IQueryable<StorkItme> StorkItmes = _storkItmeServer.GetAll7DaysBeforeBestBy();
-
-                if (StorkItmes is not null)
+                if (!isManager || !includeAll)
                 {
-
-                    if (roleCheck && GetAllStorkItme)
-                        storkItmeDTOs = await StorkItmes.Select(x => new StorkItmeDTO(x) { UserGroup = new UserGroupDTO(x.UserGroup) }).ToListAsync();
-                    else
-                    {
-                        storkItmeDTOs = await StorkItmes.Where(g => user.UserGroups.Contains(g.UserGroup)).Select(b => new StorkItmeDTO(b) { UserGroup = new UserGroupDTO(b.UserGroup) }).ToListAsync();
-                    }
+                    var groupIds = user.UserGroups.Select(x => x.Id).ToList();
+                    items = items.Where(x => groupIds.Contains(x.UserGroupId)).ToList();
                 }
 
-                return Ok(storkItmeDTOs);
+                var result = items.Select(x => new StorkItmeDTO(x)
+                {
+                    UserGroup = new UserGroupDTO(x.UserGroup)
+                }).ToList();
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving user groups.");
-                return StatusCode(500, "Internal server error");
-            }
-
-        }
-
-        [HttpGet("GetAllAfterBestBy")]
-        [Authorize(Policy = "Read")]
-        public async Task<IActionResult> GetAllAfterBestBy(bool GetAllStorkItme = false)
-        {
-            try
-            {
-                var user = await _userManager.GetUserAsync(User);
-                var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).FirstOrDefault();
-
-                bool roleCheck = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles);
-
-                List<StorkItmeDTO> storkItmeDTOs = new List<StorkItmeDTO>();
-
-                IQueryable<StorkItme> StorkItmes = _storkItmeServer.GetAllAfterBestBy();
-
-                if (StorkItmes is not null)
-                {
-
-                    if (roleCheck && GetAllStorkItme)
-                        storkItmeDTOs = await StorkItmes.Select(x => new StorkItmeDTO(x) { UserGroup = new UserGroupDTO(x.UserGroup) }).ToListAsync();
-                    else
-                    {
-                        storkItmeDTOs = await StorkItmes.Where(g => user.UserGroups.Contains(g.UserGroup)).Select(b => new StorkItmeDTO(b) { UserGroup = new UserGroupDTO(b.UserGroup) }).ToListAsync();
-                    }
-                }
-
-                return Ok(storkItmeDTOs);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving user groups.");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error in GetAll");
+                return StatusCode(500);
             }
         }
+
+        // ------------------------
+        // CREATE
+        // ------------------------
 
         [HttpPost("Create")]
         [Authorize(Policy = "Member")]
-        public IActionResult Create([FromBody] StorkItmeFromBody storkItmeFromBody)
+        public IActionResult Create([FromBody] StorkItmeFromBody dto)
         {
             try
             {
-                // Check for valid UserGroup early
-                var userGroup = _userGroupServ.Get(storkItmeFromBody.UserGroupId);
+                var userGroup = _userGroupService.Get(dto.UserGroupId);
 
-                if (userGroup is null)
+                if (userGroup == null)
+                    return BadRequest("Invalid user group");
+
+                var item = new StorkItme
                 {
-                    // Log and return BadRequest with a message to explain the issue
-                    _logger.LogWarning("UserGroup with ID {UserGroupId} not found.", storkItmeFromBody.UserGroupId);
-                    return BadRequest("Invalid UserGroup ID provided.");
-                }
-
-
-                // Create StorkItme if UserGroup is valid
-                var storkItme = new StorkItme()
-                {
-                    Name = storkItmeFromBody.Name,
-                    Description = storkItmeFromBody.Description,
-                    Type = storkItmeFromBody.Type,
-                    BestBy = storkItmeFromBody.BestBy,
-                    Stork = storkItmeFromBody.Stork,
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    Type = dto.Type,
+                    BestBy = dto.BestBy,
+                    Stork = dto.Stork,
                     UserGroupId = userGroup.Id,
-                    storeLocation = storkItmeFromBody.storeLocation,
-                    ItemNumber = storkItmeFromBody.ItemNumber,
-                    EAN = storkItmeFromBody.EAN
+                    StoreLocation = dto.StoreLocation,
+                    ItemNumber = dto.ItemNumber,
+                    EAN = dto.EAN
                 };
 
-                storkItme = _storkItmeServer.Create(storkItme);
+                var created = _storkItmeService.Create(item);
 
-                if( storkItme is null )
+                if (created == null)
+                    return StatusCode(500);
+
+                return Ok(new StorkItmeDTO(created)
                 {
-                    return StatusCode(500, "StorkItme is not created");
-                }
-                // Log successful creation
-                _logger.LogInformation("StorkItme with ID {StorkItmeId} created successfully.", storkItme.Id);
-
-                // Return a successful response with DTO
-                return Ok(new StorkItmeDTO(storkItme) { UserGroup = new UserGroupDTO(userGroup) });
+                    UserGroup = new UserGroupDTO(userGroup)
+                });
             }
             catch (Exception ex)
             {
-                // Log the exception details
-                _logger.LogError(ex, "An error occurred while creating the StorkItme.");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error in Create");
+                return StatusCode(500);
             }
         }
 
+        // ------------------------
+        // UPDATE
+        // ------------------------
 
-        [HttpPut("Updata")]
+        [HttpPut("Update")]
         [Authorize(Policy = "Member")]
-        public IActionResult Updata(int id , [FromBody] StorkItmeFromUpdateBody storkItmeFromBody)
+        public IActionResult Update(int id, [FromBody] StorkItmeFromUpdateBody dto)
         {
-
             try
             {
+                var item = _storkItmeService.Get(id);
 
-                StorkItme storkItme = _storkItmeServer.Get(id);
+                if (item == null)
+                    return NotFound();
 
-                if(storkItme is not null)
+                item.Name = dto.Name ?? item.Name;
+                item.Description = dto.Description ?? item.Description;
+                item.Type = dto.Type ?? item.Type;
+                item.BestBy = dto.BestBy ?? item.BestBy;
+                item.Stork = dto.Stork ?? item.Stork;
+                item.StoreLocation = dto.StoreLocation ?? item.StoreLocation;
+                item.ItemNumber = dto.ItemNumber ?? item.ItemNumber;
+                item.EAN = dto.EAN ?? item.EAN;
+
+                if (dto.UserGroupId.HasValue && dto.UserGroupId != item.UserGroupId)
                 {
-                    bool error = false;
+                    var userGroup = _userGroupService.Get(dto.UserGroupId.Value);
 
-                    storkItme.Name = storkItmeFromBody.Name ?? storkItme.Name;
-                    storkItme.Description = storkItmeFromBody.Description ?? storkItme.Description;
-                    storkItme.Type = storkItmeFromBody.Type ?? storkItme.Type;
-                    storkItme.BestBy = storkItmeFromBody.BestBy ?? storkItme.BestBy;
-                    storkItme.Stork = storkItmeFromBody.Stork ?? storkItme.Stork;
+                    if (userGroup == null)
+                        return BadRequest("Invalid user group");
 
-                    storkItme.storeLocation = storkItmeFromBody.storeLocation ?? storkItme.storeLocation;
-                    storkItme.ItemNumber = storkItmeFromBody.ItemNumber ?? storkItme.ItemNumber;
-                    storkItme.EAN = storkItmeFromBody.EAN ?? storkItme.EAN;
-
-
-
-                    if (storkItmeFromBody.UserGroupId is int userGroupId && storkItme.UserGroupId != storkItmeFromBody.UserGroupId)
-                    {
-                        UserGroup userGroup = _userGroupServ.Get(userGroupId);
-
-                        if (userGroup is not null)
-                        {
-                            storkItme.UserGroupId = userGroup.Id;
-                            storkItme.UserGroup = userGroup;
-                        }
-                        else
-                            error = true;
-                    }
-
-                    if (!error)
-                    {
-                        if(_storkItmeServer.Updata(storkItme))
-                            return Ok();
-                    }
+                    item.UserGroupId = userGroup.Id;
+                    item.UserGroup = userGroup;
                 }
 
-                return BadRequest();
+                bool success = _storkItmeService.Update(item);
 
+                return success ? Ok() : StatusCode(500);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving user groups.");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error in Update");
+                return StatusCode(500);
             }
-
         }
+
+        // ------------------------
+        // DELETE
+        // ------------------------
 
         [HttpDelete("Delete")]
         [Authorize(Policy = "Manager")]
@@ -308,25 +221,20 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
-                StorkItme storkItme = _storkItmeServer.Get(id);
+                var item = _storkItmeService.Get(id);
 
-                if (storkItme is not null)
-                {
-                    if(_storkItmeServer.Delete(storkItme))
-                        return Ok();
-                    else
-                        return StatusCode(500, "cannot delete storkItme");
-                }
+                if (item == null)
+                    return NotFound();
 
-                return StatusCode(500, "No storkItme find");
-
+                return _storkItmeService.Delete(item)
+                    ? Ok()
+                    : StatusCode(500);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving user groups.");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error in Delete");
+                return StatusCode(500);
             }
         }
-
     }
 }

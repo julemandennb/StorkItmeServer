@@ -4,28 +4,52 @@ namespace StorkItmeServer.Server.Interface
 {
     public interface IStorkItmeServ
     {
-        public StorkItme? Get(int id);
+        // --------------------
+        // SINGLE GET
+        // --------------------
 
-        public IQueryable<StorkItme>? GetAll();
+        StorkItme? Get(int id);
 
-        public IQueryable<StorkItme>? GetAll7DaysBeforeBestBy();
+        StorkItme? GetFromItemNumber(string itemNumber);
 
-        public IQueryable<StorkItme>? GetAllAfterBestBy();
+        StorkItme? GetFromEAN(string ean);
 
-        public StorkItme? Create(StorkItme storkItme);
+        // --------------------
+        // LIST GETTERS
+        // --------------------
 
-        public StorkItme? CreateWithoutSave(StorkItme storkItme);
+        List<StorkItme> GetAll();
 
-        public bool Updata(StorkItme storkItme);
+        List<StorkItme> GetAll7DaysBeforeBestBy();
 
-        public bool UpdateWithoutSave(StorkItme storkItme);
+        List<StorkItme> GetAllAfterBestBy();
 
-        public bool Delete(StorkItme storkItme);
+        // --------------------
+        // CREATE
+        // --------------------
 
-        public bool DeleteWithoutSave(StorkItme storkItme);
+        StorkItme? Create(StorkItme storkItme);
 
-        public bool RemoveRange(ICollection<StorkItme> storkItmes);
+        StorkItme? CreateWithoutSave(StorkItme storkItme);
 
-        public bool RemoveRangeWithoutSave(ICollection<StorkItme> storkItmes);
+        // --------------------
+        // UPDATE
+        // --------------------
+
+        bool Update(StorkItme storkItme);
+
+        bool UpdateWithoutSave(StorkItme storkItme);
+
+        // --------------------
+        // DELETE
+        // --------------------
+
+        bool Delete(StorkItme storkItme);
+
+        bool DeleteWithoutSave(StorkItme storkItme);
+
+        bool RemoveRange(ICollection<StorkItme> storkItmes);
+
+        bool RemoveRangeWithoutSave(ICollection<StorkItme> storkItmes);
     }
 }

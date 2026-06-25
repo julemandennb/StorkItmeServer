@@ -22,7 +22,7 @@ namespace StorkItmeServer.Migrations
                     Type = table.Column<string>(type: "text", nullable: false),
                     BestBy = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Stork = table.Column<int>(type: "integer", nullable: false),
-                    ImgUrl = table.Column<string>(type: "text", nullable: false),
+                    ImgUrl = table.Column<string>(type: "text", nullable: true),
                     UserGroupId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>

@@ -1,22 +1,17 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Database;
 using StorkItmeServer.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TestProject
 {
     internal class SetDataBaseUp
     {
-
-        private string databaseClassName = "";
-
-        private RoleAuthorizationHandler roleAuthorizationHandler;
+        private readonly string databaseClassName;
+        private readonly RoleAuthorizationHandler roleAuthorizationHandler;
 
         internal SetDataBaseUp(string databaseClassName)
         {
@@ -24,81 +19,100 @@ namespace TestProject
             this.roleAuthorizationHandler = new RoleAuthorizationHandler();
         }
 
-
-
         internal DataContext Up(string databaseName)
         {
-
             var options = new DbContextOptionsBuilder<DataContext>()
-            .UseInMemoryDatabase(databaseName: $"{this.databaseClassName}{databaseName}Database")
-            .Options;
+                .UseInMemoryDatabase(databaseName: $"{databaseClassName}-{databaseName}-{Guid.NewGuid()}")
+                .Options;
 
-            DateTime dateTime = new DateTime().AddYears(1);
+            var context = new DataContext(options);
 
-            using (var context = new DataContext(options))
-            {
-                context.UserGroup.AddRange(UserGroups());
+            // Seed data
+            context.UserGroup.AddRange(UserGroups());
+            context.SaveChanges();
 
-                context.StorkItme.AddRange(StorkItmes());
+            context.StorkItme.AddRange(StorkItmes());
+            context.Users.AddRange(Users());
+            context.Roles.AddRange(AddRole());
 
-                context.Users.AddRange(Users());
+            context.SaveChanges();
 
-                context.Roles.AddRange(AddRole());
-
-                context.SaveChanges();
-            }
-
-            return new DataContext(options);
+            return context;
         }
 
         private List<Role> AddRole()
         {
-            return roleAuthorizationHandler.roleHierarchy.Select(x => new Role(x, x)).ToList();
+            return roleAuthorizationHandler.roleHierarchy
+                .Select(x => new Role(x, x))
+                .ToList();
         }
-  
+
         internal List<User> Users()
         {
-            List<User> users = new List<User>
+            return new List<User>
             {
-                new User(){ UserName ="User1",Email="user1@test.dk"},
-                new User(){ UserName ="User2",Email="user2@test.dk"},
+                new User { UserName = "User1", Email = "user1@test.dk" },
+                new User { UserName = "User2", Email = "user2@test.dk" }
             };
-
-            return users;
         }
 
         internal List<UserGroup> UserGroups()
         {
-            List<UserGroup> userGroups = new List<UserGroup>
+            return new List<UserGroup>
             {
-                new UserGroup() { Name = "den har id 1", Color = "#fff" },
-                new UserGroup() { Name = "den har id 2", Color = "#fff" },
-                new UserGroup() { Name = "den har id 3", Color = "#fff" }
+                new UserGroup { Name = "den har id 1", Color = "#fff" },
+                new UserGroup { Name = "den har id 2", Color = "#fff" },
+                new UserGroup { Name = "den har id 3", Color = "#fff" }
             };
-
-            return userGroups;
         }
 
         internal List<StorkItme> StorkItmes()
         {
-            DateTime dateTime = DateTime.Now.AddYears(1);
+            DateTime now = DateTime.UtcNow;
 
-            //one day add to now 
-            DateTime dateTimeOneday = DateTime.Now.AddDays(1);
-
-            DateTime dateTimeMinusOneday = DateTime.Now.AddDays(-1);
-
-
-            List<StorkItme> storkItmess = new List<StorkItme>
+            return new List<StorkItme>
             {
-                new StorkItme() { UserGroupId = 1, Name = "den har id 1", Stork = 1, BestBy = dateTime, Description = "den har id 1", Type = "fefs", ImgUrl = "" },
-                new StorkItme() { UserGroupId = 1, Name = "den har id 2", Stork = 1, BestBy = dateTime, Description = "den har id 2", Type = "fefs", ImgUrl = "" },
-                new StorkItme() { UserGroupId = 1, Name = "den har id 3", Stork = 1, BestBy = dateTimeMinusOneday, Description = "den har id 3", Type = "fefs", ImgUrl = "" },
-                new StorkItme() { UserGroupId = 1, Name = "den har id 4", Stork = 1, BestBy = dateTimeOneday, Description = "den har id 4", Type = "fefs", ImgUrl = "" }
+                new StorkItme
+                {
+                    UserGroupId = 1,
+                    Name = "den har id 1",
+                    Stork = 1,
+                    BestBy = now.AddYears(1),
+                    Description = "den har id 1",
+                    Type = "fefs",
+                    ImgUrl = ""
+                },
+                new StorkItme
+                {
+                    UserGroupId = 1,
+                    Name = "den har id 2",
+                    Stork = 1,
+                    BestBy = now.AddYears(1),
+                    Description = "den har id 2",
+                    Type = "fefs",
+                    ImgUrl = ""
+                },
+                new StorkItme
+                {
+                    UserGroupId = 1,
+                    Name = "den har id 3",
+                    Stork = 1,
+                    BestBy = now.AddDays(-1),
+                    Description = "den har id 3",
+                    Type = "fefs",
+                    ImgUrl = ""
+                },
+                new StorkItme
+                {
+                    UserGroupId = 1,
+                    Name = "den har id 4",
+                    Stork = 1,
+                    BestBy = now.AddDays(1),
+                    Description = "den har id 4",
+                    Type = "fefs",
+                    ImgUrl = ""
+                }
             };
-
-            return storkItmess;
         }
-
     }
 }

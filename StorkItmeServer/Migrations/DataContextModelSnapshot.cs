@@ -203,7 +203,7 @@ namespace StorkItmeServer.Migrations
                     b.Property<int>("UserGroupId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("storeLocation")
+                    b.Property<string>("StoreLocation")
                         .IsRequired()
                         .HasColumnType("text");
 
