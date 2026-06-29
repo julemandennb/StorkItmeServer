@@ -10,6 +10,8 @@ namespace StorkItmeServer.Model
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
+        public Guid Uuid { get; private set; } = Guid.NewGuid();
+
         public required string Name { get; set; }
 
         public required string Description { get; set; }
@@ -29,6 +31,8 @@ namespace StorkItmeServer.Model
         public string ?EAN { get; set; }
 
         public int ?UserGroupId { get; set; }
+
+        public int? StorkItmeGroupId { get; set; }
 
         public virtual UserGroup UserGroup { get; set; } = null!;
 

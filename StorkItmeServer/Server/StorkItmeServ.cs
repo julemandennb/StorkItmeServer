@@ -17,115 +17,89 @@ namespace StorkItmeServer.Server
         }
 
         // ------------------------
-        // GET SINGLE ITEMS
+        // BASE QUERY
         // ------------------------
-
-        public StorkItme? Get(int id)
+        private IQueryable<StorkItme> BaseQuery(bool tracking = false)
         {
-            try
-            {
-                return _context.StorkItme.FirstOrDefault(x => x.Id == id);
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "Get storkItme");
-                return null;
-            }
+            var query = _context.StorkItme
+                .Include(x => x.UserGroup);
+
+            return tracking ? query : query.AsNoTracking();
         }
 
-        public StorkItme? GetFromItemNumber(string itemNumber)
-        {
-            try
-            {
-                return _context.StorkItme.FirstOrDefault(x => x.ItemNumber == itemNumber);
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "Get storkItme from ItemNumber");
-                return null;
-            }
-        }
-
-        public StorkItme? GetFromEAN(string ean)
-        {
-            try
-            {
-                return _context.StorkItme.FirstOrDefault(x => x.EAN == ean);
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "Get storkItme from EAN");
-                return null;
-            }
-        }
+        private DateTime UtcNow => DateTime.UtcNow;
 
         // ------------------------
-        // GET LISTS
+        // SINGLE GET
         // ------------------------
 
-        public List<StorkItme> GetAll()
+        public async Task<StorkItme?> GetAsync(int id)
         {
-            try
-            {
-                return _context.StorkItme
-                    .Include(x => x.UserGroup)
-                    .OrderBy(x => x.Id)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "GetAll storkItme");
-                return new List<StorkItme>();
-            }
+            return await BaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public List<StorkItme> GetAll7DaysBeforeBestBy()
+        public async Task<StorkItme?> GetAsync(string uuid)
         {
-            try
-            {
-                var now = DateTime.UtcNow;
-                var inSevenDays = now.AddDays(7);
+            if (!Guid.TryParse(uuid, out var guid))
+                return null;
 
-                return _context.StorkItme
-                    .Include(x => x.UserGroup)
-                    .Where(x => x.BestBy >= now && x.BestBy <= inSevenDays)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "GetAll 7 Days Before BestBy");
-                return new List<StorkItme>();
-            }
+            return await BaseQuery()
+                .FirstOrDefaultAsync(x => x.Uuid == guid);
         }
 
-        public List<StorkItme> GetAllAfterBestBy()
+        public async Task<StorkItme?> GetFromItemNumberAsync(string itemNumber)
         {
-            try
-            {
-                var now = DateTime.UtcNow;
+            return await BaseQuery()
+                .FirstOrDefaultAsync(x => x.ItemNumber == itemNumber);
+        }
 
-                return _context.StorkItme
-                    .Include(x => x.UserGroup)
-                    .Where(x => x.BestBy <= now)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "GetAll after BestBy");
-                return new List<StorkItme>();
-            }
+        public async Task<StorkItme?> GetFromEANAsync(string ean)
+        {
+            return await BaseQuery()
+                .FirstOrDefaultAsync(x => x.EAN == ean);
+        }
+
+        // ------------------------
+        // LIST GETTERS
+        // ------------------------
+
+        public async Task<List<StorkItme>> GetAllAsync()
+        {
+            return await BaseQuery()
+                .OrderBy(x => x.Id)
+                .ToListAsync();
+        }
+
+        public async Task<List<StorkItme>> GetAll7DaysBeforeBestByAsync()
+        {
+            var now = UtcNow;
+            var inSevenDays = now.AddDays(7);
+
+            return await BaseQuery()
+                .Where(x => x.BestBy >= now && x.BestBy <= inSevenDays)
+                .ToListAsync();
+        }
+
+        public async Task<List<StorkItme>> GetAllAfterBestByAsync()
+        {
+            var now = UtcNow;
+
+            return await BaseQuery()
+                .Where(x => x.BestBy <= now)
+                .ToListAsync();
         }
 
         // ------------------------
         // CREATE
         // ------------------------
 
-        public StorkItme? Create(StorkItme storkItme)
+        public async Task<StorkItme?> CreateAsync(StorkItme storkItme)
         {
             try
             {
                 _context.StorkItme.Add(storkItme);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
                 return storkItme;
             }
             catch (Exception ex)
@@ -135,30 +109,23 @@ namespace StorkItmeServer.Server
             }
         }
 
-        public StorkItme? CreateWithoutSave(StorkItme storkItme)
-        {
-            try
-            {
-                _context.StorkItme.Add(storkItme);
-                return storkItme;
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "Create storkItme without save");
-                return null;
-            }
-        }
-
         // ------------------------
         // UPDATE
         // ------------------------
 
-        public bool Update(StorkItme storkItme)
+        public async Task<bool> UpdateAsync(StorkItme storkItme)
         {
             try
             {
-                _context.StorkItme.Update(storkItme);
-                _context.SaveChanges();
+                var existing = await _context.StorkItme
+                    .FirstOrDefaultAsync(x => x.Id == storkItme.Id);
+
+                if (existing == null)
+                    return false;
+
+                _context.Entry(existing).CurrentValues.SetValues(storkItme);
+
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch (Exception ex)
@@ -168,30 +135,23 @@ namespace StorkItmeServer.Server
             }
         }
 
-        public bool UpdateWithoutSave(StorkItme storkItme)
-        {
-            try
-            {
-                _context.StorkItme.Update(storkItme);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "Update storkItme without save");
-                return false;
-            }
-        }
-
         // ------------------------
         // DELETE
         // ------------------------
 
-        public bool Delete(StorkItme storkItme)
+        public async Task<bool> DeleteAsync(int id)
         {
             try
             {
-                _context.StorkItme.Remove(storkItme);
-                _context.SaveChanges();
+                var entity = await _context.StorkItme
+                    .FirstOrDefaultAsync(x => x.Id == id);
+
+                if (entity == null)
+                    return false;
+
+                _context.StorkItme.Remove(entity);
+                await _context.SaveChangesAsync();
+
                 return true;
             }
             catch (Exception ex)
@@ -201,26 +161,38 @@ namespace StorkItmeServer.Server
             }
         }
 
-        public bool DeleteWithoutSave(StorkItme storkItme)
+        public async Task<bool> DeleteAsync(string uuid)
         {
             try
             {
-                _context.StorkItme.Remove(storkItme);
+
+                if (!Guid.TryParse(uuid, out var guid))
+                    return false;
+
+                var entity = await _context.StorkItme
+                     .FirstOrDefaultAsync(x => x.Uuid == guid);
+
+                if (entity == null)
+                    return false;
+
+                _context.StorkItme.Remove(entity);
+                await _context.SaveChangesAsync();
+
                 return true;
             }
             catch (Exception ex)
             {
-                LogError(ex, "Delete storkItme without save");
+                LogError(ex, "Delete storkItme");
                 return false;
             }
         }
 
-        public bool RemoveRange(ICollection<StorkItme> storkItmes)
+        public async Task<bool> RemoveRangeAsync(ICollection<StorkItme> storkItmes)
         {
             try
             {
                 _context.StorkItme.RemoveRange(storkItmes);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch (Exception ex)
@@ -230,27 +202,13 @@ namespace StorkItmeServer.Server
             }
         }
 
-        public bool RemoveRangeWithoutSave(ICollection<StorkItme> storkItmes)
-        {
-            try
-            {
-                _context.StorkItme.RemoveRange(storkItmes);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "Remove range storkItme without save");
-                return false;
-            }
-        }
-
         // ------------------------
         // LOGGING
         // ------------------------
 
-        private void LogError(Exception ex, string operation)
+        private void LogError(Exception ex, string funName)
         {
-            _logger.LogError(ex, "An error occurred while {Operation}", operation);
+            _logger.LogError(ex, "An error occurred while {Function}", funName);
         }
     }
 }

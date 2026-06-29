@@ -6,6 +6,8 @@ namespace StorkItmeServer.Server.Interface
     {
         public UserGroup? Get(int id);
 
+        public UserGroup? Get(string uuid);
+
         public IQueryable<UserGroup>? GetAll();
 
         public UserGroup? Create(UserGroup userGroup);

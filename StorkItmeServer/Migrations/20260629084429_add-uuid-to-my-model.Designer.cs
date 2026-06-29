@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using StorkItmeServer.Database;
@@ -11,9 +12,11 @@ using StorkItmeServer.Database;
 namespace StorkItmeServer.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20260629084429_add-uuid-to-my-model")]
+    partial class adduuidtomymodel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -211,7 +214,7 @@ namespace StorkItmeServer.Migrations
                     b.Property<int>("Stork")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("StorkItmeGroupId")
+                    b.Property<int>("StorkItmeGroupId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Type")
@@ -235,9 +238,6 @@ namespace StorkItmeServer.Migrations
                     b.HasIndex("Type");
 
                     b.HasIndex("UserGroupId");
-
-                    b.HasIndex("Uuid")
-                        .IsUnique();
 
                     b.HasIndex("Name", "Type");
 
@@ -320,6 +320,9 @@ namespace StorkItmeServer.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
@@ -354,9 +357,6 @@ namespace StorkItmeServer.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
-
-                    b.HasIndex("Uuid")
-                        .IsUnique();
 
                     b.ToTable("UserGroup", "storkitmeserver");
                 });
@@ -446,7 +446,9 @@ namespace StorkItmeServer.Migrations
                 {
                     b.HasOne("StorkItmeServer.Model.StorkItmeGroup", "StorkItmeGroup")
                         .WithMany("StorkItmes")
-                        .HasForeignKey("StorkItmeGroupId");
+                        .HasForeignKey("StorkItmeGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("StorkItmeServer.Model.UserGroup", "UserGroup")
                         .WithMany("StorkItmes")

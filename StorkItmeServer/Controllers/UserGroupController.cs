@@ -80,14 +80,14 @@ namespace StorkItmeServer.Controllers
 
         [HttpGet("Get")]
         [Authorize(Policy = "Read")]
-        public async Task<IActionResult> Get(int id)
+        public async Task<IActionResult> Get(string uuid)
         {
             try
             {
                 var user = await _userServ.GetByClaimsPrincipal(User);
                 var userRoles = UserHelp.Role(User);
 
-                UserGroup userGroup = _userGroupServ.Get(id);
+                UserGroup userGroup = _userGroupServ.Get(uuid);
 
                 bool roleCheck = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles);
 
@@ -208,11 +208,11 @@ namespace StorkItmeServer.Controllers
         //this is not test 
         [HttpDelete("Delete")]
         [Authorize(Policy = "Manager")]
-        public IActionResult Delete(int id)
+        public IActionResult Delete(string uuid)
         {
             try
             {
-                UserGroup userGroup = _userGroupServ.Get(id);
+                UserGroup userGroup = _userGroupServ.Get(uuid);
 
                 if (userGroup is not null)
                 {

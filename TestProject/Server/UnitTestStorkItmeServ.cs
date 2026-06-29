@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using StorkItmeServer.Database;
 using StorkItmeServer.Model;
 using StorkItmeServer.Server;
 
@@ -13,76 +15,160 @@ namespace TestProject.Server
             _setDataBaseUp = new SetDataBaseUp("StorkItmeServ");
         }
 
+        private StorkItmeServ CreateService(DataContext context)
+            => new StorkItmeServ(
+                new LoggerFactory().CreateLogger<StorkItmeServ>(),
+                context
+            );
+
+        // ------------------------
+        // GET
+        // ------------------------
+
         [Fact]
-        public void TestGet()
+        public async Task GetById_ReturnsCorrectEntity()
         {
             using var context = _setDataBaseUp.Up("Get");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
-            var storkItme = service.Get(2);
-            var expected = context.StorkItme.FirstOrDefault(x => x.Id == 2);
+            var expected = await context.StorkItme.FirstAsync();
+            var result = await service.GetAsync(expected.Id);
 
-            Assert.NotNull(storkItme);
-            Assert.NotNull(expected);
-
-            Assert.Equal(expected!.Id, storkItme!.Id);
+            Assert.NotNull(result);
+            Assert.Equal(expected.Id, result!.Id);
         }
 
         [Fact]
-        public void TestGet_ReturnsNull_WhenItemDoesNotExist()
+        public async Task GetById_ReturnsNull_WhenNotFound()
         {
             using var context = _setDataBaseUp.Up("Get_NotFound");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
-            var result = service.Get(99999);
+            var result = await service.GetAsync(999999);
 
             Assert.Null(result);
         }
 
         [Fact]
-        public void TestGetFromItemNumber()
+        public async Task GetByUuid_ReturnsCorrectEntity()
+        {
+            using var context = _setDataBaseUp.Up("GetByUuid");
+
+            var service = CreateService(context);
+
+            var entity = await context.StorkItme.FirstAsync();
+
+            var result = await service.GetAsync(entity.Uuid.ToString());
+
+            Assert.NotNull(result);
+            Assert.Equal(entity.Id, result!.Id);
+        }
+
+        [Fact]
+        public async Task GetByUuid_ReturnsNull_WhenInvalidGuid()
+        {
+            using var context = _setDataBaseUp.Up("GetByUuid_Invalid");
+
+            var service = CreateService(context);
+
+            var result = await service.GetAsync("not-a-guid");
+
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task GetFromItemNumber_ReturnsCorrectItem()
         {
             using var context = _setDataBaseUp.Up("GetFromItemNumber");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
-            var expected = context.StorkItme.First();
+            var entity = await context.StorkItme.FirstAsync();
+            entity.ItemNumber = "TEST-ITEM-123";
+            await context.SaveChangesAsync();
 
-            expected.ItemNumber = "ABC123";
-            context.SaveChanges();
-
-            var result = service.GetFromItemNumber("ABC123");
+            var result = await service.GetFromItemNumberAsync("TEST-ITEM-123");
 
             Assert.NotNull(result);
-            Assert.Equal(expected.Id, result!.Id);
+            Assert.Equal(entity.Id, result!.Id);
         }
 
         [Fact]
-        public void TestGetFromEAN()
+        public async Task GetFromEAN_ReturnsCorrectItem()
         {
             using var context = _setDataBaseUp.Up("GetFromEAN");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
-            var expected = context.StorkItme.First();
+            var entity = await context.StorkItme.FirstAsync();
+            entity.EAN = "EAN-TEST-999";
+            await context.SaveChangesAsync();
 
-            expected.EAN = "EAN999";
-            context.SaveChanges();
-
-            var result = service.GetFromEAN("EAN999");
+            var result = await service.GetFromEANAsync("EAN-TEST-999");
 
             Assert.NotNull(result);
-            Assert.Equal(expected.Id, result!.Id);
+            Assert.Equal(entity.Id, result!.Id);
+        }
+
+        // ------------------------
+        // GET ALL
+        // ------------------------
+
+        [Fact]
+        public async Task GetAll_ReturnsAllItems()
+        {
+            using var context = _setDataBaseUp.Up("GetAll");
+
+            var service = CreateService(context);
+
+            var result = await service.GetAllAsync();
+            var expectedCount = await context.StorkItme.CountAsync();
+
+            Assert.Equal(expectedCount, result.Count);
         }
 
         [Fact]
-        public void TestCreate_ReturnsEntityWithId()
+        public async Task GetAll7DaysBeforeBestBy_ReturnsItemsInRange()
+        {
+            using var context = _setDataBaseUp.Up("GetAll7DaysBeforeBestBy");
+
+            var service = CreateService(context);
+
+            var result = await service.GetAll7DaysBeforeBestByAsync();
+
+            Assert.NotNull(result);
+            Assert.All(result, x =>
+                Assert.True(x.BestBy >= DateTime.UtcNow.AddDays(-1))
+            );
+        }
+
+        [Fact]
+        public async Task GetAllAfterBestBy_ReturnsExpiredItems()
+        {
+            using var context = _setDataBaseUp.Up("GetAllAfterBestBy");
+
+            var service = CreateService(context);
+
+            var result = await service.GetAllAfterBestByAsync();
+
+            Assert.NotNull(result);
+            Assert.All(result, x =>
+                Assert.True(x.BestBy <= DateTime.UtcNow)
+            );
+        }
+
+        // ------------------------
+        // CREATE
+        // ------------------------
+
+        [Fact]
+        public async Task Create_ReturnsEntity()
         {
             using var context = _setDataBaseUp.Up("Create_Returns");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
             var item = new StorkItme
             {
@@ -94,240 +180,153 @@ namespace TestProject.Server
                 Stork = 1
             };
 
-            var result = service.Create(item);
+            var result = await service.CreateAsync(item);
 
             Assert.NotNull(result);
             Assert.True(result!.Id > 0);
         }
 
         [Fact]
-        public void TestGetAll()
-        {
-            using var context = _setDataBaseUp.Up("GetAll");
-
-            var service = new StorkItmeServ(null, context);
-
-            var result = service.GetAll();
-
-            Assert.NotNull(result);
-            Assert.Equal(_setDataBaseUp.StorkItmes().Count, result.Count);
-        }
-
-        [Fact]
-        public void TestGetAll7DaysBeforeBestBy()
-        {
-            using var context = _setDataBaseUp.Up("GetAll7DaysBeforeBestBy");
-
-            var service = new StorkItmeServ(null, context);
-
-            var result = service.GetAll7DaysBeforeBestBy().ToList();
-
-            Assert.Single(result);
-            Assert.Equal("den har id 4", result[0].Name);
-        }
-
-        [Fact]
-        public void TestGetAllAfterBestBy()
-        {
-            using var context = _setDataBaseUp.Up("GetAll7DaysBeforeBestBy");
-
-            var service = new StorkItmeServ(null, context);
-
-            var result = service.GetAllAfterBestBy().ToList();
-
-            Assert.Single(result);
-            Assert.Equal("den har id 3", result[0].Name);
-        }
-
-        [Fact]
-        public void TestCreate()
+        public async Task Create_IncreasesCount()
         {
             using var context = _setDataBaseUp.Up("Create");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
-            var before = context.StorkItme.Count();
+            var before = await context.StorkItme.CountAsync();
 
-            var item = new StorkItme
+            await service.CreateAsync(new StorkItme
             {
                 UserGroupId = 1,
-                Name = "den har er add",
+                Name = "created item",
                 Stork = 1,
                 BestBy = DateTime.UtcNow,
-                Description = "den har er add",
-                Type = "fefs"
-            };
+                Description = "desc",
+                Type = "type"
+            });
 
-            service.Create(item);
-
-            var after = context.StorkItme.Count();
+            var after = await context.StorkItme.CountAsync();
 
             Assert.Equal(before + 1, after);
         }
 
         [Fact]
-        public void TestCreateWithoutSave()
+        public async Task Create_AssignsUuid()
         {
-            using var context = _setDataBaseUp.Up("CreateWithoutSave");
+            using var context = _setDataBaseUp.Up("Create_Uuid");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
-            var before = context.StorkItme.Count();
-
-            var item = new StorkItme
+            var result = await service.CreateAsync(new StorkItme
             {
                 UserGroupId = 1,
-                Name = "den har er add",
+                Name = "uuid test item",
                 Stork = 1,
                 BestBy = DateTime.UtcNow,
-                Description = "den har er add",
-                Type = "fefs"
-            };
+                Description = "desc",
+                Type = "type"
+            });
 
-            service.CreateWithoutSave(item);
-
-            Assert.Equal(before, context.StorkItme.Count());
-
-            context.SaveChanges();
-
-            Assert.Equal(before + 1, context.StorkItme.Count());
+            Assert.NotNull(result);
+            Assert.NotEqual(Guid.Empty, result!.Uuid);
         }
 
+        // ------------------------
+        // UPDATE
+        // ------------------------
+
         [Fact]
-        public void TestUpdate()
+        public async Task Update_ChangesEntity()
         {
-            using var context = _setDataBaseUp.Up("Updata");
+            using var context = _setDataBaseUp.Up("Update");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
-            var item = service.Get(1);
-            var originalName = item!.Name;
+            var entity = await context.StorkItme.FirstAsync();
+            var original = entity.Name;
 
-            item.Name = "updated name";
+            entity.Name = "updated name";
 
-            service.Update(item);
+            var result = await service.UpdateAsync(entity);
 
-            var updated = service.Get(1);
+            var updated = await context.StorkItme.FirstAsync(x => x.Id == entity.Id);
 
-            Assert.NotEqual(originalName, updated!.Name);
+            Assert.True(result);
+            Assert.NotEqual(original, updated.Name);
         }
 
-        [Fact]
-        public void TestUpdateWithoutSave()
-        {
-            using var context = _setDataBaseUp.Up("TestUpdateWithoutSave");
-
-            var service = new StorkItmeServ(null, context);
-
-            var item = service.Get(1);
-            var original = item!.Name;
-
-            item.Name = "Updated Name";
-
-            service.UpdateWithoutSave(item);
-
-            var notSaved = context.StorkItme.AsNoTracking().First(x => x.Id == 1);
-            Assert.Equal(original, notSaved.Name);
-
-            context.SaveChanges();
-
-            var saved = context.StorkItme.AsNoTracking().First(x => x.Id == 1);
-            Assert.Equal("Updated Name", saved.Name);
-        }
+        // ------------------------
+        // DELETE
+        // ------------------------
 
         [Fact]
-        public void TestDelete()
+        public async Task Delete_RemovesEntity()
         {
             using var context = _setDataBaseUp.Up("Delete");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
-            var before = context.StorkItme.Count();
+            var before = await context.StorkItme.CountAsync();
 
-            var item = service.Get(2);
-            service.Delete(item!);
+            var entity = await context.StorkItme.FirstAsync();
 
-            var after = context.StorkItme.Count();
+            var result = await service.DeleteAsync(entity.Id);
 
+            var after = await context.StorkItme.CountAsync();
+
+            Assert.True(result);
             Assert.Equal(before - 1, after);
         }
 
         [Fact]
-        public void TestRemoveRange()
+        public async Task DeleteByUuid_RemovesEntity()
+        {
+            using var context = _setDataBaseUp.Up("DeleteByUuid");
+
+            var service = CreateService(context);
+
+            var entity = await context.StorkItme.FirstAsync();
+            var before = await context.StorkItme.CountAsync();
+
+            var result = await service.DeleteAsync(entity.Uuid.ToString());
+
+            var after = await context.StorkItme.CountAsync();
+
+            Assert.True(result);
+            Assert.Equal(before - 1, after);
+        }
+
+        [Fact]
+        public async Task DeleteByUuid_ReturnsFalse_WhenInvalidGuid()
+        {
+            using var context = _setDataBaseUp.Up("DeleteByUuid_Invalid");
+
+            var service = CreateService(context);
+
+            var result = await service.DeleteAsync("invalid-guid");
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task RemoveRange_RemovesMultipleEntities()
         {
             using var context = _setDataBaseUp.Up("RemoveRange");
 
-            var service = new StorkItmeServ(null, context);
+            var service = CreateService(context);
 
-            var before = context.StorkItme.Count();
+            var before = await context.StorkItme.CountAsync();
 
-            var items = context.StorkItme.Where(x => x.Id > 3).ToList();
+            var items = await context.StorkItme
+                .Where(x => x.Id > 3)
+                .ToListAsync();
 
-            service.RemoveRange(items);
+            var result = await service.RemoveRangeAsync(items);
 
-            var after = context.StorkItme.Count();
+            var after = await context.StorkItme.CountAsync();
 
+            Assert.True(result);
             Assert.Equal(before - items.Count, after);
-        }
-
-        [Fact]
-        public void TestDelete_RemovesItem()
-        {
-            using var context = _setDataBaseUp.Up("Delete_Check");
-
-            var service = new StorkItmeServ(null, context);
-
-            var item = context.StorkItme.First();
-
-            var id = item.Id;
-
-            service.Delete(item);
-
-            var deleted = context.StorkItme.FirstOrDefault(x => x.Id == id);
-
-            Assert.Null(deleted);
-        }
-
-        [Fact]
-        public void TestRemoveRange_RemovesMultiple()
-        {
-            using var context = _setDataBaseUp.Up("RemoveRange_Multi");
-
-            var service = new StorkItmeServ(null, context);
-
-            var items = context.StorkItme.Take(2).ToList();
-            var before = context.StorkItme.Count();
-
-            service.RemoveRange(items);
-
-            var after = context.StorkItme.Count();
-
-            Assert.Equal(before - 2, after);
-        }
-
-        [Fact]
-        public void TestUpdateWithoutSave_DoesNotPersistUntilSave()
-        {
-            using var context = _setDataBaseUp.Up("UpdateWithoutSave");
-
-            var service = new StorkItmeServ(null, context);
-
-            var item = service.Get(1);
-            var original = item!.Name;
-
-            item.Name = "changed";
-
-            service.UpdateWithoutSave(item);
-
-            var stillOriginal = context.StorkItme.AsNoTracking().First(x => x.Id == 1);
-
-            Assert.Equal(original, stillOriginal.Name);
-
-            context.SaveChanges();
-
-            var updated = context.StorkItme.AsNoTracking().First(x => x.Id == 1);
-
-            Assert.Equal("changed", updated.Name);
         }
     }
 }

@@ -6,6 +6,8 @@ namespace StorkItmeServer.Model
     {
         public int Id { get; set; }
 
+        public Guid Uuid { get; private set; } = Guid.NewGuid();
+
         public string Name { get; set; }
 
         public string Color { get; set; }

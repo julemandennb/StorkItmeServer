@@ -23,11 +23,23 @@ namespace StorkItmeServer.Database
         {
             base.OnModelCreating(builder);
 
-            new DataUserGroup().ModelCreating(builder);
+            builder.HasDefaultSchema("storkitmeserver");
 
+            new DataUserGroup().ModelCreating(builder);
             new DataStorkItme().ModelCreating(builder);
 
-            builder.HasDefaultSchema("storkitmeserver");
+            ConfigureUuid(builder);
+        }
+
+        private void ConfigureUuid(ModelBuilder builder)
+        {
+            builder.Entity<UserGroup>()
+                .Property(x => x.Uuid)
+                .IsRequired();
+
+            builder.Entity<StorkItme>()
+                .Property(x => x.Uuid)
+                .IsRequired();
 
         }
 

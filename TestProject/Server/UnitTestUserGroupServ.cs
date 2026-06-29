@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using StorkItmeServer.Database;
 using StorkItmeServer.Model;
 using StorkItmeServer.Server;
@@ -7,208 +8,232 @@ namespace TestProject.Server
 {
     public class UnitTestUserGroupServ
     {
-        private SetDataBaseUp _setDataBaseUp;
+        private readonly SetDataBaseUp _setDataBaseUp;
 
         public UnitTestUserGroupServ()
         {
             _setDataBaseUp = new SetDataBaseUp("UserGroupServ");
         }
 
-        [Fact]
-        public void TestGet()
-        {
+        private UserGroupServ CreateService(DataContext context)
+            => new UserGroupServ(
+                new LoggerFactory().CreateLogger<UserGroupServ>(),
+                context,
+                new StorkItmeServ(new LoggerFactory().CreateLogger<StorkItmeServ>(), context)
+            );
 
-            using (var context = _setDataBaseUp.Up("Get"))
-            {
-                UserGroupServ userGroupServ = MakeUserGroupServ(context);
-                UserGroup userGroup = userGroupServ.Get(2);
-                Assert.NotNull(userGroup);
-                UserGroup userGroupCehek = context.UserGroup.FirstOrDefault(x => x.Id == 2);
-                Assert.NotNull(userGroupCehek);
-                Assert.Equal(userGroupCehek, userGroup);
-
-            }
-
-        }
+        // ------------------------
+        // GET
+        // ------------------------
 
         [Fact]
-        public void TestGetAll()
+        public async Task GetById_ReturnsCorrectEntity()
         {
+            using var context = _setDataBaseUp.Up("Get");
 
-            using (var context = _setDataBaseUp.Up("GetAll"))
-            {
-                UserGroupServ userGroupServ = MakeUserGroupServ(context);
+            var service = CreateService(context);
 
-                IQueryable<UserGroup> UserGroups = userGroupServ.GetAll();
-                Assert.NotNull(UserGroups);
+            var expected = await context.UserGroup.FirstAsync();
+            var result = service.Get(expected.Id);
 
-                Assert.Equal(_setDataBaseUp.UserGroups().Count(), UserGroups.Count());
-            }
-
+            Assert.NotNull(result);
+            Assert.Equal(expected.Id, result!.Id);
         }
 
         [Fact]
-        public void TestCreate()
+        public async Task GetById_ReturnsNull_WhenNotFound()
         {
+            using var context = _setDataBaseUp.Up("Get_NotFound");
 
-            using (var context = _setDataBaseUp.Up("Create"))
-            {
-                UserGroupServ userGroupServ = MakeUserGroupServ(context);
-                int checkNr = _setDataBaseUp.UserGroups().Count();
-                int Nr = context.UserGroup.Count();
-                Assert.Equal(checkNr, Nr);
+            var service = CreateService(context);
 
-                UserGroup userGroup = new UserGroup() { Name = "add", Color = "#fff" };
-                userGroupServ.Create(userGroup);
+            var result = service.Get(999999);
 
-                checkNr = _setDataBaseUp.UserGroups().Count() + 1;
-                Nr = context.UserGroup.Count();
-
-                Assert.Equal(checkNr, Nr);
-            }
-
+            Assert.Null(result);
         }
 
         [Fact]
-        public void TestCreateWithoutSave()
+        public async Task GetByUuid_ReturnsCorrectEntity()
         {
+            using var context = _setDataBaseUp.Up("GetByUuid");
 
-            using (var context = _setDataBaseUp.Up("CreateWithoutSave"))
-            {
-                UserGroupServ userGroupServ = MakeUserGroupServ(context);
+            var service = CreateService(context);
 
-                int checkNr = _setDataBaseUp.UserGroups().Count();
-                int Nr = context.UserGroup.Count();
-                Assert.Equal(checkNr, Nr);
+            var entity = await context.UserGroup.FirstAsync();
 
-                UserGroup userGroup = new UserGroup() { Name = "add", Color = "#fff" };
-                userGroupServ.CreateWithoutSave(userGroup);
-                Nr = context.UserGroup.Count();
+            var result = service.Get(entity.Uuid.ToString());
 
-                Assert.Equal(checkNr, Nr);
-                context.SaveChanges();
-                Nr = context.UserGroup.Count();
-                checkNr = _setDataBaseUp.UserGroups().Count() + 1;
-
-                Assert.Equal(checkNr, Nr);
-
-            }
-
+            Assert.NotNull(result);
+            Assert.Equal(entity.Id, result!.Id);
         }
 
         [Fact]
-        public void TestUpdata()
+        public async Task GetByUuid_ReturnsNull_WhenInvalidGuid()
         {
+            using var context = _setDataBaseUp.Up("GetByUuid_Invalid");
 
-            using (var context = _setDataBaseUp.Up("Updata"))
+            var service = CreateService(context);
+
+            var result = service.Get("not-a-guid");
+
+            Assert.Null(result);
+        }
+
+        // ------------------------
+        // GET ALL
+        // ------------------------
+
+        [Fact]
+        public async Task GetAll_ReturnsAllEntities()
+        {
+            using var context = _setDataBaseUp.Up("GetAll");
+
+            var service = CreateService(context);
+
+            var result = service.GetAll();
+
+            Assert.NotNull(result);
+
+            var expectedCount = await context.UserGroup.CountAsync();
+            var actualCount = result!.Count();
+
+            Assert.Equal(expectedCount, actualCount);
+        }
+
+        // ------------------------
+        // CREATE
+        // ------------------------
+
+        [Fact]
+        public async Task Create_ReturnsEntity()
+        {
+            using var context = _setDataBaseUp.Up("Create_Returns");
+
+            var service = CreateService(context);
+
+            var entity = new UserGroup
             {
-                UserGroupServ userGroupServ = MakeUserGroupServ(context);
+                Name = "test group",
+                Color = "#fff"
+            };
 
-                string NameCheck = userGroupServ.Get(1).Name;
+            var result = service.Create(entity);
 
-                UserGroup userGroup = userGroupServ.Get(1);
-
-                Assert.Equal(NameCheck, userGroup.Name);
-
-                userGroup.Name = "Ny name";
-
-                userGroupServ.Updata(userGroup);
-
-                userGroup = userGroupServ.Get(1);
-
-                Assert.NotEqual(NameCheck, userGroup.Name);
-            }
-
+            Assert.NotNull(result);
+            Assert.True(result!.Id > 0);
         }
 
         [Fact]
-        public void TestUpdateWithoutSave()
+        public async Task Create_IncreasesCount()
         {
+            using var context = _setDataBaseUp.Up("Create");
 
-            using (var context = _setDataBaseUp.Up("TestUpdateWithoutSave"))
+            var service = CreateService(context);
+
+            var before = await context.UserGroup.CountAsync();
+
+            service.Create(new UserGroup
             {
-                UserGroupServ userGroupServ = MakeUserGroupServ(context);
+                Name = "created group",
+                Color = "#000"
+            });
 
-                var originalItem = userGroupServ.Get(1);
-                string originalName = originalItem.Name;
+            var after = await context.UserGroup.CountAsync();
 
-                Assert.Equal("den har id 1", originalName);
+            Assert.Equal(before + 1, after);
+        }
 
-                originalItem.Name = "Updated Name";
-                userGroupServ.UpdateWithoutSave(originalItem);
+        // ------------------------
+        // UPDATE
+        // ------------------------
 
-                var updatedItemWithoutSave = context.UserGroup.AsNoTracking().FirstOrDefault(x => x.Id == 1);
-                Assert.Equal("den har id 1", updatedItemWithoutSave.Name); // Name should still be the original in the database
+        [Fact]
+        public async Task Update_ChangesEntity()
+        {
+            using var context = _setDataBaseUp.Up("Update");
 
-                context.SaveChanges();
+            var service = CreateService(context);
 
-                var updatedItemWithSave = context.UserGroup.AsNoTracking().FirstOrDefault(x => x.Id == 1);
-                Assert.Equal("Updated Name", updatedItemWithSave.Name); // Name should now be updated in the database
-            }
+            var entity = await context.UserGroup.FirstAsync();
+            var original = entity.Name;
+
+            entity.Name = "updated name";
+
+            var result = service.Updata(entity);
+
+            var updated = await context.UserGroup.FirstAsync(x => x.Id == entity.Id);
+
+            Assert.True(result);
+            Assert.NotEqual(original, updated.Name);
         }
 
         [Fact]
-        public void TestDelete()
+        public async Task UpdateWithoutSave_DoesNotPersistUntilSaved()
         {
+            using var context = _setDataBaseUp.Up("UpdateWithoutSave");
 
-            using (var context = _setDataBaseUp.Up("Delete"))
-            {
-                UserGroupServ userGroupServ = MakeUserGroupServ(context);
+            var service = CreateService(context);
 
-                int checkNr = _setDataBaseUp.UserGroups().Count();
-                int nr = context.UserGroup.Count();
+            var entity = await context.UserGroup.FirstAsync();
+            var original = entity.Name;
 
-                Assert.Equal(checkNr, nr);
+            entity.Name = "temporary update";
 
-                UserGroup userGroup = userGroupServ.Get(2);
+            service.UpdateWithoutSave(entity);
 
-                userGroupServ.Delete(userGroup);
-                checkNr--;
-                nr = context.UserGroup.Count();
+            var beforeSave = await context.UserGroup.AsNoTracking().FirstAsync(x => x.Id == entity.Id);
+            Assert.Equal(original, beforeSave.Name);
 
-                Assert.Equal(checkNr, nr);
-            }
+            await context.SaveChangesAsync();
 
+            var afterSave = await context.UserGroup.AsNoTracking().FirstAsync(x => x.Id == entity.Id);
+            Assert.Equal("temporary update", afterSave.Name);
+        }
+
+        // ------------------------
+        // DELETE
+        // ------------------------
+
+        [Fact]
+        public async Task Delete_RemovesEntity()
+        {
+            using var context = _setDataBaseUp.Up("Delete");
+
+            var service = CreateService(context);
+
+            var before = await context.UserGroup.CountAsync();
+
+            var entity = await context.UserGroup.FirstAsync();
+
+            var result = service.Delete(entity);
+
+            var after = await context.UserGroup.CountAsync();
+
+            Assert.True(result);
+            Assert.Equal(before - 1, after);
         }
 
         [Fact]
-        public void TestDeleteWithoutSave()
+        public async Task DeleteWithoutSave_RemovesAfterSave()
         {
+            using var context = _setDataBaseUp.Up("DeleteWithoutSave");
 
-            using (var context = _setDataBaseUp.Up("DeleteWithoutSave"))
-            {
-                UserGroupServ userGroupServ = MakeUserGroupServ(context);
+            var service = CreateService(context);
 
-                int checkNr = _setDataBaseUp.UserGroups().Count();
-                int nr = context.UserGroup.Count();
+            var before = await context.UserGroup.CountAsync();
 
-                Assert.Equal(checkNr, nr);
+            var entity = await context.UserGroup.FirstAsync();
 
-                UserGroup userGroup = userGroupServ.Get(2);
+            var result = service.DeleteWithoutSave(entity);
 
-                userGroupServ.DeleteWithoutSave(userGroup);
+            Assert.True(result);
+            Assert.Equal(before, context.UserGroup.Count());
 
-                nr = context.UserGroup.Count();
+            await context.SaveChangesAsync();
 
-                Assert.Equal(checkNr, nr);
+            var after = await context.UserGroup.CountAsync();
 
-                context.SaveChanges();
-                checkNr--;
-                nr = context.UserGroup.Count();
-
-                Assert.Equal(checkNr, nr);
-
-            }
-
+            Assert.Equal(before - 1, after);
         }
-
-        private UserGroupServ MakeUserGroupServ(DataContext context)
-        {
-            StorkItmeServ storkItmeServ = new StorkItmeServ(null, context);
-            UserGroupServ userGroupServ = new UserGroupServ(null, context, storkItmeServ);
-
-            return userGroupServ;
-        }
-
     }
 }

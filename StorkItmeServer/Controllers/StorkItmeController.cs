@@ -7,7 +7,6 @@ using StorkItmeServer.Help;
 using StorkItmeServer.Model;
 using StorkItmeServer.Model.DTO;
 using StorkItmeServer.Server.Interface;
-using System.Security.Claims;
 
 namespace StorkItmeServer.Controllers
 {
@@ -16,8 +15,9 @@ namespace StorkItmeServer.Controllers
     public class StorkItmeController : ControllerBase
     {
         private readonly ILogger<StorkItmeController> _logger;
-        private readonly RoleAuthorizationHandler _roleAuthorizationHandler;
         private readonly UserManager<User> _userManager;
+        private readonly RoleAuthorizationHandler _roleAuthorizationHandler;
+
 
         private readonly IStorkItmeServ _storkItmeService;
         private readonly IUserGroupServ _userGroupService;
@@ -27,12 +27,12 @@ namespace StorkItmeServer.Controllers
             UserManager<User> userManager,
             IStorkItmeServ storkItmeService,
             IUserGroupServ userGroupService)
+
         {
             _logger = logger;
             _userManager = userManager;
             _storkItmeService = storkItmeService;
             _userGroupService = userGroupService;
-
             _roleAuthorizationHandler = new RoleAuthorizationHandler();
         }
 
@@ -42,36 +42,29 @@ namespace StorkItmeServer.Controllers
 
         [HttpGet("Get")]
         [Authorize(Policy = "Read")]
-        public async Task<IActionResult> GetAsync(int? id, string? itemNumber, string? ean)
+        public async Task<IActionResult> GetAsync(string? uuid, string? itemNumber, string? ean)
         {
             try
             {
                 var user = await _userManager.GetUserAsync(User);
-              
-                var role = UserHelp.Role(User);
+                if (user == null)
+                    return Unauthorized();
 
-                StorkItme? item = id != null
-                    ? _storkItmeService.Get(id.Value)
+                StorkItme? item = uuid != null
+                    ? await _storkItmeService.GetAsync(uuid)
                     : itemNumber != null
-                        ? _storkItmeService.GetFromItemNumber(itemNumber)
+                        ? await _storkItmeService.GetFromItemNumberAsync(itemNumber)
                         : ean != null
-                            ? _storkItmeService.GetFromEAN(ean)
+                            ? await _storkItmeService.GetFromEANAsync(ean)
                             : null;
 
                 if (item == null)
                     return NotFound();
 
-                bool isManager = _roleAuthorizationHandler.CheckUserRole("Manager", role);
-                bool hasAccess = isManager || user.UserGroups.Contains(item.UserGroup);
-
-                if (!hasAccess)
+                if (!HasAccess(user, item))
                     return Forbid();
 
-                return Ok(new StorkItmeDTO(item)
-                {
-
-                     UserGroup = item.UserGroup != null ? new UserGroupDTO(item.UserGroup) : null
-                });
+                return Ok(ToDto(item));
             }
             catch (Exception ex)
             {
@@ -91,26 +84,25 @@ namespace StorkItmeServer.Controllers
             try
             {
                 var user = await _userManager.GetUserAsync(User);
-                var role = UserHelp.Role(User);
+                if (user == null)
+                    return Unauthorized();
 
-                bool isManager = _roleAuthorizationHandler.CheckUserRole("Manager", role);
+                string role = UserHelp.Role(User);
 
-                var items = _storkItmeService.GetAll();
+                var isManager = _roleAuthorizationHandler.CheckUserRole("Manager", role);
+
+                var items = await _storkItmeService.GetAllAsync();
 
                 if (!isManager || !includeAll)
                 {
-                    var groupIds = user.UserGroups.Select(x => x.Id).ToList();
+                    var groupIds = user.UserGroups.Select(x => x.Id).ToHashSet();
+
                     items = items
                         .Where(x => x.UserGroupId.HasValue && groupIds.Contains(x.UserGroupId.Value))
                         .ToList();
                 }
 
-                var result = items.Select(x => new StorkItmeDTO(x)
-                {
-                    UserGroup = x.UserGroup != null ? new UserGroupDTO(x.UserGroup) : null
-                }).ToList();
-
-                return Ok(result);
+                return Ok(items.Select((StorkItme x) => ToDto(x)).ToList());
             }
             catch (Exception ex)
             {
@@ -125,11 +117,10 @@ namespace StorkItmeServer.Controllers
 
         [HttpPost("Create")]
         [Authorize(Policy = "Member")]
-        public IActionResult Create([FromBody] StorkItmeFromBody dto)
+        public async Task<IActionResult> Create([FromBody] StorkItmeFromBody dto)
         {
             try
             {
-                int? userGroupId = null;
                 UserGroup? userGroup = null;
 
                 if (dto.UserGroupId.HasValue)
@@ -138,8 +129,6 @@ namespace StorkItmeServer.Controllers
 
                     if (userGroup == null)
                         return BadRequest("Invalid user group");
-
-                    userGroupId = userGroup.Id;
                 }
 
                 var item = new StorkItme
@@ -149,21 +138,18 @@ namespace StorkItmeServer.Controllers
                     Type = dto.Type,
                     BestBy = dto.BestBy,
                     Stork = dto.Stork,
-                    UserGroupId = userGroupId,
+                    UserGroupId = userGroup?.Id,
                     StoreLocation = dto.StoreLocation,
                     ItemNumber = dto.ItemNumber,
                     EAN = dto.EAN
                 };
 
-                var created = _storkItmeService.Create(item);
+                var created = await _storkItmeService.CreateAsync(item);
 
                 if (created == null)
                     return StatusCode(500);
 
-                return Ok(new StorkItmeDTO(created)
-                {
-                    UserGroup = userGroup != null ? new UserGroupDTO(userGroup) : null
-                });
+                return Ok(ToDto(created, userGroup));
             }
             catch (Exception ex)
             {
@@ -178,11 +164,11 @@ namespace StorkItmeServer.Controllers
 
         [HttpPut("Update")]
         [Authorize(Policy = "Member")]
-        public IActionResult Update(int id, [FromBody] StorkItmeFromUpdateBody dto)
+        public async Task<IActionResult> Update(int id, [FromBody] StorkItmeFromUpdateBody dto)
         {
             try
             {
-                var item = _storkItmeService.Get(id);
+                var item = await _storkItmeService.GetAsync(id);
 
                 if (item == null)
                     return NotFound();
@@ -196,7 +182,7 @@ namespace StorkItmeServer.Controllers
                 item.ItemNumber = dto.ItemNumber ?? item.ItemNumber;
                 item.EAN = dto.EAN ?? item.EAN;
 
-                if (dto.UserGroupId.HasValue && dto.UserGroupId != item.UserGroupId)
+                if (dto.UserGroupId.HasValue)
                 {
                     var userGroup = _userGroupService.Get(dto.UserGroupId.Value);
 
@@ -207,7 +193,7 @@ namespace StorkItmeServer.Controllers
                     item.UserGroup = userGroup;
                 }
 
-                bool success = _storkItmeService.Update(item);
+                var success = await _storkItmeService.UpdateAsync(item);
 
                 return success ? Ok() : StatusCode(500);
             }
@@ -224,24 +210,43 @@ namespace StorkItmeServer.Controllers
 
         [HttpDelete("Delete")]
         [Authorize(Policy = "Manager")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(string uuid)
         {
             try
             {
-                var item = _storkItmeService.Get(id);
+                var success = await _storkItmeService.DeleteAsync(uuid);
 
-                if (item == null)
-                    return NotFound();
-
-                return _storkItmeService.Delete(item)
-                    ? Ok()
-                    : StatusCode(500);
+                return success ? Ok() : NotFound();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Delete");
                 return StatusCode(500);
             }
+        }
+
+        // ------------------------
+        // HELPERS
+        // ------------------------
+
+        private bool HasAccess(User user, StorkItme item)
+        {
+            var role = UserHelp.Role(User);
+            var isManager = _roleAuthorizationHandler.CheckUserRole("Manager", role);
+
+            return isManager || user.UserGroups.Contains(item.UserGroup);
+        }
+
+        private StorkItmeDTO ToDto(StorkItme item, UserGroup? group = null)
+        {
+            var resolvedGroup = group ?? item.UserGroup;
+
+            return new StorkItmeDTO(item)
+            {
+                UserGroup = resolvedGroup != null
+                    ? new UserGroupDTO(resolvedGroup)
+                    : null
+            };
         }
     }
 }

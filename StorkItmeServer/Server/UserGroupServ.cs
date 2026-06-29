@@ -31,6 +31,23 @@ namespace StorkItmeServer.Server
             }
         }
 
+        public UserGroup? Get(string uuid)
+        {
+            try
+            {
+                if (!Guid.TryParse(uuid, out var guid))
+                    return null;
+
+                return _context.UserGroup
+                    .FirstOrDefault(x => x.Uuid == guid);
+            }
+            catch (Exception ex)
+            {
+                ErrorCatch(ex, "Get UserGroup");
+                return null;
+            }
+        }
+
         public IQueryable<UserGroup>? GetAll()
         {
             try
@@ -116,9 +133,7 @@ namespace StorkItmeServer.Server
             {
                 userGroup.Users.Clear();
 
-                ICollection<StorkItme> storkItmes = userGroup.StorkItmes;
-
-                _storkItmeServ.RemoveRangeWithoutSave(storkItmes);
+                _context.StorkItme.RemoveRange(userGroup.StorkItmes);
 
                 _context.UserGroup.Remove(userGroup);
 
@@ -129,7 +144,6 @@ namespace StorkItmeServer.Server
             catch (Exception ex)
             {
                 ErrorCatch(ex, "Delete userGroup");
-
                 return false;
             }
         }
@@ -156,6 +170,5 @@ namespace StorkItmeServer.Server
             else
                 Console.WriteLine(ex);
         }
-
     }
 }

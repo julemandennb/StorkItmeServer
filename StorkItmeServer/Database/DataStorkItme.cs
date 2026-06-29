@@ -21,6 +21,8 @@ namespace StorkItmeServer.Database
                 bu.HasIndex(p => p.Stork);
                 bu.HasIndex(p => new { p.Name, p.Type });
 
+                bu.HasIndex(x => x.Uuid).IsUnique();
+
             });
         }
     }

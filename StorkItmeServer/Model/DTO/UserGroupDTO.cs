@@ -4,7 +4,7 @@ namespace StorkItmeServer.Model.DTO
 {
     public class UserGroupDTO
     {
-        public int Id { get; set; }
+        public Guid Uuid { get; set; }
 
         public string Name { get; set; }
 
@@ -17,8 +17,8 @@ namespace StorkItmeServer.Model.DTO
         public UserGroupDTO() { }
 
         public UserGroupDTO(UserGroup userGroup) {
-        
-            Id = userGroup.Id;
+
+            Uuid = userGroup.Uuid;
             Name = userGroup.Name;
             Color = userGroup.Color;
 

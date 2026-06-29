@@ -4,7 +4,7 @@ namespace StorkItmeServer.Model.DTO
 {
     public class StorkItmeDTO
     {
-        public int Id { get; set; }
+        public Guid Uuid { get; set; }
 
         public string Name { get; set; }
 
@@ -29,8 +29,8 @@ namespace StorkItmeServer.Model.DTO
         public StorkItmeDTO() { }
 
         public StorkItmeDTO(StorkItme storkItme) {
-        
-            Id = storkItme.Id;
+
+            Uuid = storkItme.Uuid;
             Name = storkItme.Name;
             Description = storkItme.Description;
             Type = storkItme.Type;

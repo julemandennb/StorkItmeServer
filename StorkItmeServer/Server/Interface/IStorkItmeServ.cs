@@ -8,48 +8,44 @@ namespace StorkItmeServer.Server.Interface
         // SINGLE GET
         // --------------------
 
-        StorkItme? Get(int id);
+        Task<StorkItme?> GetAsync(int id);
 
-        StorkItme? GetFromItemNumber(string itemNumber);
+        Task<StorkItme?> GetAsync(string uuid);
 
-        StorkItme? GetFromEAN(string ean);
+        Task<StorkItme?> GetFromItemNumberAsync(string itemNumber);
+
+        Task<StorkItme?> GetFromEANAsync(string ean);
 
         // --------------------
         // LIST GETTERS
         // --------------------
 
-        List<StorkItme> GetAll();
+        Task<List<StorkItme>> GetAllAsync();
 
-        List<StorkItme> GetAll7DaysBeforeBestBy();
+        Task<List<StorkItme>> GetAll7DaysBeforeBestByAsync();
 
-        List<StorkItme> GetAllAfterBestBy();
+        Task<List<StorkItme>> GetAllAfterBestByAsync();
 
         // --------------------
         // CREATE
         // --------------------
 
-        StorkItme? Create(StorkItme storkItme);
-
-        StorkItme? CreateWithoutSave(StorkItme storkItme);
+        Task<StorkItme?> CreateAsync(StorkItme storkItme);
 
         // --------------------
         // UPDATE
         // --------------------
 
-        bool Update(StorkItme storkItme);
-
-        bool UpdateWithoutSave(StorkItme storkItme);
+        Task<bool> UpdateAsync(StorkItme storkItme);
 
         // --------------------
         // DELETE
         // --------------------
 
-        bool Delete(StorkItme storkItme);
+        Task<bool> DeleteAsync(int id);
 
-        bool DeleteWithoutSave(StorkItme storkItme);
+        Task<bool> DeleteAsync(string uuid);
 
-        bool RemoveRange(ICollection<StorkItme> storkItmes);
-
-        bool RemoveRangeWithoutSave(ICollection<StorkItme> storkItmes);
+        Task<bool> RemoveRangeAsync(ICollection<StorkItme> storkItmes);
     }
 }

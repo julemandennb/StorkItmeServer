@@ -17,7 +17,7 @@ namespace StorkItmeServer.Help
             }
             else
             {
-               throw new Exception("User has no role claim.");
+                throw new Exception("User has no role claim.");
             }
         }
 
