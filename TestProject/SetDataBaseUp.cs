@@ -31,6 +31,9 @@ namespace TestProject
             context.UserGroup.AddRange(UserGroups());
             context.SaveChanges();
 
+            context.StorkItmeGroup.AddRange(StorkItmeGroups());
+            context.SaveChanges();
+
             context.StorkItme.AddRange(StorkItmes());
             context.Users.AddRange(Users());
             context.Roles.AddRange(AddRole());
@@ -66,6 +69,16 @@ namespace TestProject
             };
         }
 
+        internal List<StorkItmeGroup> StorkItmeGroups()
+        {
+            return new List<StorkItmeGroup>
+            {
+                new StorkItmeGroup { Name = "den har id 1" , Description = "test 1" },
+                new StorkItmeGroup { Name = "den har id 2" , Description = "test 2" },
+                new StorkItmeGroup { Name = "den har id 3" , Description = "test 3" }
+            };
+        }
+
         internal List<StorkItme> StorkItmes()
         {
             DateTime now = DateTime.UtcNow;
@@ -80,7 +93,8 @@ namespace TestProject
                     BestBy = now.AddYears(1),
                     Description = "den har id 1",
                     Type = "fefs",
-                    ImgUrl = ""
+                    ImgUrl = "",
+                    StorkItmeGroupId = 1,
                 },
                 new StorkItme
                 {
@@ -90,7 +104,8 @@ namespace TestProject
                     BestBy = now.AddYears(1),
                     Description = "den har id 2",
                     Type = "fefs",
-                    ImgUrl = ""
+                    ImgUrl = "",
+                    StorkItmeGroupId = 1
                 },
                 new StorkItme
                 {
@@ -100,17 +115,20 @@ namespace TestProject
                     BestBy = now.AddDays(-1),
                     Description = "den har id 3",
                     Type = "fefs",
-                    ImgUrl = ""
+                    ImgUrl = "",
+                    StorkItmeGroupId = 1
                 },
                 new StorkItme
                 {
-                    UserGroupId = 1,
+                    UserGroupId = 2,
                     Name = "den har id 4",
                     Stork = 1,
                     BestBy = now.AddDays(1),
                     Description = "den har id 4",
                     Type = "fefs",
-                    ImgUrl = ""
+                    ImgUrl = "",
+                    StorkItmeGroupId = 2,
+
                 }
             };
         }

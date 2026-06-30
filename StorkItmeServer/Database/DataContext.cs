@@ -12,6 +12,8 @@ namespace StorkItmeServer.Database
         public DbSet<UserGroup> UserGroup { get; set; }
         public DbSet<StorkItme> StorkItme { get; set; }
 
+        public DbSet<StorkItmeGroup> StorkItmeGroup { get; set; }
+
 
 
         public DataContext(DbContextOptions<DataContext> options):base(options)
@@ -27,6 +29,7 @@ namespace StorkItmeServer.Database
 
             new DataUserGroup().ModelCreating(builder);
             new DataStorkItme().ModelCreating(builder);
+            new DataStorkItmeGroup().ModelCreating(builder);
 
             ConfigureUuid(builder);
         }
@@ -38,6 +41,10 @@ namespace StorkItmeServer.Database
                 .IsRequired();
 
             builder.Entity<StorkItme>()
+                .Property(x => x.Uuid)
+                .IsRequired();
+
+            builder.Entity<StorkItmeGroup>()
                 .Property(x => x.Uuid)
                 .IsRequired();
 

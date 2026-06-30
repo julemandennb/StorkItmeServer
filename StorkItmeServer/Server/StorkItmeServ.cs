@@ -64,29 +64,42 @@ namespace StorkItmeServer.Server
         // LIST GETTERS
         // ------------------------
 
-        public async Task<List<StorkItme>> GetAllAsync()
+        public async Task<List<StorkItme>> GetAllAsync(
+            HashSet<int>? groupIds = null,
+            HashSet<int>? storkItmeGroupIds = null)
         {
-            return await BaseQuery()
+            var query = ApplyGroupFilter(BaseQuery(), groupIds, storkItmeGroupIds);
+
+            return await query
                 .OrderBy(x => x.Id)
                 .ToListAsync();
         }
 
-        public async Task<List<StorkItme>> GetAll7DaysBeforeBestByAsync()
+        public async Task<List<StorkItme>> GetAll7DaysBeforeBestByAsync(
+            HashSet<int>? groupIds = null,
+            HashSet<int>? storkItmeGroupIds = null)
         {
             var now = UtcNow;
             var inSevenDays = now.AddDays(7);
 
-            return await BaseQuery()
+            var query = ApplyGroupFilter(BaseQuery(), groupIds, storkItmeGroupIds);
+
+            return await query
                 .Where(x => x.BestBy >= now && x.BestBy <= inSevenDays)
+                .OrderBy(x => x.Id)
                 .ToListAsync();
         }
 
-        public async Task<List<StorkItme>> GetAllAfterBestByAsync()
+        public async Task<List<StorkItme>> GetAllNotExpiredAsync(
+          HashSet<int>? groupIds = null,
+          HashSet<int>? storkItmeGroupIds = null)
         {
             var now = UtcNow;
 
-            return await BaseQuery()
-                .Where(x => x.BestBy <= now)
+            var query = ApplyGroupFilter(BaseQuery(), groupIds, storkItmeGroupIds);
+
+            return await query
+                .Where(x => x.BestBy >= now).OrderBy(x => x.Id)
                 .ToListAsync();
         }
 
@@ -209,6 +222,29 @@ namespace StorkItmeServer.Server
         private void LogError(Exception ex, string funName)
         {
             _logger.LogError(ex, "An error occurred while {Function}", funName);
+        }
+
+        // ------------------------
+        // HELPERS
+        // ------------------------
+
+        private static IQueryable<StorkItme> ApplyGroupFilter(
+           IQueryable<StorkItme> query,
+           HashSet<int>? groupIds,
+           HashSet<int>? storkItmeGroupIds)
+        {
+            if (groupIds == null && storkItmeGroupIds == null)
+                return query;
+
+            return query.Where(x =>
+                (groupIds != null &&
+                 x.UserGroupId.HasValue &&
+                 groupIds.Contains(x.UserGroupId.Value))
+                ||
+                (storkItmeGroupIds != null &&
+                 x.StorkItmeGroupId.HasValue &&
+                 storkItmeGroupIds.Contains(x.StorkItmeGroupId.Value))
+            );
         }
     }
 }

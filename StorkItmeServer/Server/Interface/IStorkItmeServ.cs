@@ -20,11 +20,11 @@ namespace StorkItmeServer.Server.Interface
         // LIST GETTERS
         // --------------------
 
-        Task<List<StorkItme>> GetAllAsync();
+        Task<List<StorkItme>> GetAllAsync(HashSet<int>? groupIds = null, HashSet<int>? storkItmeGroupIds = null);
 
-        Task<List<StorkItme>> GetAll7DaysBeforeBestByAsync();
+        Task<List<StorkItme>> GetAll7DaysBeforeBestByAsync(HashSet<int>? groupIds = null, HashSet<int>? storkItmeGroupIds = null);
 
-        Task<List<StorkItme>> GetAllAfterBestByAsync();
+        Task<List<StorkItme>> GetAllNotExpiredAsync(HashSet<int>? groupIds = null, HashSet<int>? storkItmeGroupIds = null);
 
         // --------------------
         // CREATE

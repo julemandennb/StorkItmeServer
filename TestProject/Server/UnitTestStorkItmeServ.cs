@@ -112,52 +112,193 @@ namespace TestProject.Server
             Assert.Equal(entity.Id, result!.Id);
         }
 
-        // ------------------------
+        // ----------------------------
         // GET ALL
-        // ------------------------
+        // ----------------------------
 
         [Fact]
-        public async Task GetAll_ReturnsAllItems()
+        public async Task GetAll_Returns_All_Items_When_No_Filter()
         {
-            using var context = _setDataBaseUp.Up("GetAll");
+            using var context = _setDataBaseUp.Up("GetAll_All");
 
             var service = CreateService(context);
 
             var result = await service.GetAllAsync();
-            var expectedCount = await context.StorkItme.CountAsync();
 
-            Assert.Equal(expectedCount, result.Count);
+            var expected = await context.StorkItme.CountAsync();
+
+            Assert.Equal(expected, result.Count);
         }
 
         [Fact]
-        public async Task GetAll7DaysBeforeBestBy_ReturnsItemsInRange()
+        public async Task GetAll_Filters_By_UserGroupId()
         {
-            using var context = _setDataBaseUp.Up("GetAll7DaysBeforeBestBy");
+            using var context = _setDataBaseUp.Up("GetAll_UserGroup");
 
             var service = CreateService(context);
+
+            var groupId = await context.UserGroup
+                .Select(x => x.Id)
+                .FirstAsync();
+
+            var result = await service.GetAllAsync(
+                groupIds: new HashSet<int> { groupId }
+            );
+
+            Assert.NotEmpty(result);
+
+            Assert.All(result, x =>
+                Assert.Equal(groupId, x.UserGroupId)
+            );
+        }
+
+        [Fact]
+        public async Task GetAll_Filters_By_StorkItmeGroupId()
+        {
+            using var context = _setDataBaseUp.Up("GetAll_StorkGroup");
+
+            var service = CreateService(context);
+
+            var groupId = await context.StorkItmeGroup.OrderBy(x => x.Id).Select(x => x.Id).FirstAsync();
+
+            var result = await service.GetAllAsync(
+                storkItmeGroupIds: new HashSet<int> { groupId }
+            );
+
+            Assert.NotEmpty(result);
+
+            Assert.All(result, x =>
+                Assert.Equal(groupId, x.StorkItmeGroupId)
+            );
+        }
+
+        [Fact]
+        public async Task GetAll_Returns_Empty_When_No_Match()
+        {
+            using var context = _setDataBaseUp.Up("GetAll_NoMatch");
+
+            var service = CreateService(context);
+
+            var result = await service.GetAllAsync(
+                groupIds: new HashSet<int> { 99999 }
+            );
+
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task GetAll_Uses_OR_Logic_Between_Groups()
+        {
+            using var context = _setDataBaseUp.Up("GetAll_OR");
+
+            var service = CreateService(context);
+
+            var userGroupId = await context.UserGroup.OrderBy(x => x.Id).Select(x => x.Id).FirstAsync();
+            var storkGroupId = await context.StorkItmeGroup.OrderBy(x => x.Id).Select(x => x.Id).FirstAsync();
+
+            var result = await service.GetAllAsync(
+                groupIds: new HashSet<int> { userGroupId },
+                storkItmeGroupIds: new HashSet<int> { storkGroupId }
+            );
+
+            Assert.NotEmpty(result);
+
+            Assert.True(
+                result.Any(x => x.UserGroupId == userGroupId) ||
+                result.Any(x => x.StorkItmeGroupId == storkGroupId)
+            );
+        }
+
+        // ----------------------------
+        // GET NOT EXPIRED
+        // ----------------------------
+
+        [Fact]
+        public async Task GetAllNotExpired_Returns_Future_Items_Only()
+        {
+            using var context = _setDataBaseUp.Up("NotExpired");
+
+            var service = CreateService(context);
+
+            var result = await service.GetAllNotExpiredAsync();
+
+            Assert.All(result, x =>
+                Assert.True(x.BestBy >= DateTime.UtcNow)
+            );
+        }
+
+        [Fact]
+        public async Task GetAllNotExpired_Excludes_Expired_Items()
+        {
+            using var context = _setDataBaseUp.Up("NotExpired_Exclude");
+
+            var service = CreateService(context);
+
+            var expired = context.StorkItme
+                .Where(x => x.BestBy < DateTime.UtcNow)
+                .ToList();
+
+            var result = await service.GetAllNotExpiredAsync();
+
+            Assert.DoesNotContain(result, x => expired.Any(e => e.Id == x.Id));
+        }
+
+        // ----------------------------
+        // GET 7 DAYS BEFORE BEST BY
+        // ----------------------------
+
+        [Fact]
+        public async Task GetAll7DaysBeforeBestBy_Returns_Items_Within_Range()
+        {
+            using var context = _setDataBaseUp.Up("7Days_Range");
+
+            var service = CreateService(context);
+
+            var now = DateTime.UtcNow;
+
+            context.StorkItme.Add(new StorkItme
+            {
+                Name = "valid",
+                UserGroupId = 1,
+                Description = "Test",
+                Type = "TestType",
+                Stork = 1,
+                BestBy = now.AddDays(3)
+            });
+
+            await context.SaveChangesAsync();
 
             var result = await service.GetAll7DaysBeforeBestByAsync();
 
-            Assert.NotNull(result);
-            Assert.All(result, x =>
-                Assert.True(x.BestBy >= DateTime.UtcNow.AddDays(-1))
-            );
+            Assert.Contains(result, x => x.Name == "valid");
         }
 
         [Fact]
-        public async Task GetAllAfterBestBy_ReturnsExpiredItems()
+        public async Task GetAll7DaysBeforeBestBy_Excludes_OutOfRange_Items()
         {
-            using var context = _setDataBaseUp.Up("GetAllAfterBestBy");
+            using var context = _setDataBaseUp.Up("7Days_Exclude");
 
             var service = CreateService(context);
 
-            var result = await service.GetAllAfterBestByAsync();
+            var now = DateTime.UtcNow;
 
-            Assert.NotNull(result);
-            Assert.All(result, x =>
-                Assert.True(x.BestBy <= DateTime.UtcNow)
-            );
+            context.StorkItme.Add(new StorkItme
+            {
+                Name = "too late",
+                Description = "desc",
+                Type = "type",
+                UserGroupId = 1,
+                Stork = 1,
+                BestBy = now.AddDays(20)
+            });
+
+            await context.SaveChangesAsync();
+
+            var result = await service.GetAll7DaysBeforeBestByAsync();
+
+            Assert.DoesNotContain(result, x => x.Name == "too late");
         }
+    
 
         // ------------------------
         // CREATE

@@ -79,7 +79,7 @@ namespace StorkItmeServer.Controllers
 
         [HttpGet("GetAll")]
         [Authorize(Policy = "Read")]
-        public async Task<IActionResult> GetAll(bool includeAll = false)
+        public async Task<IActionResult> GetAll(bool GetFromUsergroup = false, bool GetFromStorkItmeGroup = false)
         {
             try
             {
@@ -91,16 +91,23 @@ namespace StorkItmeServer.Controllers
 
                 var isManager = _roleAuthorizationHandler.CheckUserRole("Manager", role);
 
-                var items = await _storkItmeService.GetAllAsync();
-
-                if (!isManager || !includeAll)
+                if (isManager && !GetFromUsergroup && !GetFromStorkItmeGroup)
                 {
-                    var groupIds = user.UserGroups.Select(x => x.Id).ToHashSet();
-
-                    items = items
-                        .Where(x => x.UserGroupId.HasValue && groupIds.Contains(x.UserGroupId.Value))
-                        .ToList();
+                    var itemall = await _storkItmeService.GetAllAsync();
+                    return Ok(itemall.Select((StorkItme x) => ToDto(x)).ToList());
                 }
+               
+
+                HashSet<int> groupIds = new HashSet<int>();
+                HashSet<int> StorkItmeGroups = new HashSet<int>();
+
+                if(GetFromUsergroup)
+                    groupIds = user.UserGroups.Select(x => x.Id).ToHashSet();
+                if(GetFromStorkItmeGroup)
+                    StorkItmeGroups = user.StorkItmeGroups.Select(x => x.Id).ToHashSet();
+
+                var items = await _storkItmeService.GetAllAsync(groupIds, StorkItmeGroups);
+
 
                 return Ok(items.Select((StorkItme x) => ToDto(x)).ToList());
             }

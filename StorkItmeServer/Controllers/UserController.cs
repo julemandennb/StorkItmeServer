@@ -286,6 +286,8 @@ namespace StorkItmeServer.Controllers
 
                         userDTO.UserGroups = user.UserGroups.Select(x => new UserGroupDTO(x)).ToList();
 
+                        userDTO.StorkItmeGroupDto = user.StorkItmeGroups.Select(x => new StorkItmeGroupDto(x)).ToList();
+
                         return Ok(userDTO);
                     }
 
