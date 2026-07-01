@@ -16,6 +16,8 @@ namespace StorkItmeServer.Server.Interface
 
         Task<StorkItme?> GetFromEANAsync(string ean);
 
+        Task<StorkItme?> GetTrackedAsync(string uuid);
+
         // --------------------
         // LIST GETTERS
         // --------------------
@@ -36,7 +38,7 @@ namespace StorkItmeServer.Server.Interface
         // UPDATE
         // --------------------
 
-        Task<bool> UpdateAsync(StorkItme storkItme);
+        Task<bool> UpdateAsync();
 
         // --------------------
         // DELETE

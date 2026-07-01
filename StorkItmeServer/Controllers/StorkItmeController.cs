@@ -169,13 +169,13 @@ namespace StorkItmeServer.Controllers
         // UPDATE
         // ------------------------
 
-        [HttpPut("Update")]
+        [HttpPut("{uuid}")]
         [Authorize(Policy = "Member")]
-        public async Task<IActionResult> Update(int id, [FromBody] StorkItmeFromUpdateBody dto)
+        public async Task<IActionResult> Update(string uuid, [FromBody] StorkItmeFromUpdateBody dto)
         {
             try
             {
-                var item = await _storkItmeService.GetAsync(id);
+                var item = await _storkItmeService.GetTrackedAsync(uuid);
 
                 if (item == null)
                     return NotFound();
@@ -189,18 +189,7 @@ namespace StorkItmeServer.Controllers
                 item.ItemNumber = dto.ItemNumber ?? item.ItemNumber;
                 item.EAN = dto.EAN ?? item.EAN;
 
-                if (dto.UserGroupId.HasValue)
-                {
-                    var userGroup = _userGroupService.Get(dto.UserGroupId.Value);
-
-                    if (userGroup == null)
-                        return BadRequest("Invalid user group");
-
-                    item.UserGroupId = userGroup.Id;
-                    item.UserGroup = userGroup;
-                }
-
-                var success = await _storkItmeService.UpdateAsync(item);
+                var success = await _storkItmeService.UpdateAsync();
 
                 return success ? Ok() : StatusCode(500);
             }

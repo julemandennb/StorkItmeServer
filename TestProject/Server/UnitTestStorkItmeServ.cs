@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StorkItmeServer.Database;
+using StorkItmeServer.FromBody.StorkItme;
 using StorkItmeServer.Model;
 using StorkItmeServer.Server;
 
@@ -384,16 +385,22 @@ namespace TestProject.Server
             var service = CreateService(context);
 
             var entity = await context.StorkItme.FirstAsync();
-            var original = entity.Name;
 
-            entity.Name = "updated name";
+            var dto = new StorkItmeFromUpdateBody
+            {
+                Name = "updated name"
+            };
 
-            var result = await service.UpdateAsync(entity);
+            var tracked = await service.GetTrackedAsync(entity.Uuid.ToString());
+
+            tracked!.Name = dto.Name;
+
+            var result = await service.UpdateAsync();
 
             var updated = await context.StorkItme.FirstAsync(x => x.Id == entity.Id);
 
             Assert.True(result);
-            Assert.NotEqual(original, updated.Name);
+            Assert.Equal("updated name", updated.Name);
         }
 
         // ------------------------
