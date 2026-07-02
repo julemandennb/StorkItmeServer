@@ -29,10 +29,8 @@ namespace TestProject
 
             // Seed data
             context.UserGroup.AddRange(UserGroups());
-            context.SaveChanges();
 
             context.StorkItmeGroup.AddRange(StorkItmeGroups());
-            context.SaveChanges();
 
             context.StorkItme.AddRange(StorkItmes());
             context.Users.AddRange(Users());

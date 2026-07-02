@@ -174,7 +174,8 @@ namespace StorkItmeServer
         private static void SetUpInterface(IServiceCollection services)
         {
             services.AddScoped<IStorkItmeServ, StorkItmeServ>();
-            services.AddScoped<IUserGroupServ, UserGroupServ>();
+            services.AddScoped<IGroupServ<UserGroup>, UserGroupServ>();
+            services.AddScoped<IGroupServ<StorkItmeGroup>, StorkItmeGroupServ>();
             services.AddScoped<IUserServ, UserServ>();
         }
 

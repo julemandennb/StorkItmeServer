@@ -5,13 +5,14 @@ using StorkItmeServer.Server.Interface;
 
 namespace StorkItmeServer.Server
 {
-    public class UserGroupServ: IGroupServ<UserGroup>
+    public class StorkItmeGroupServ : IGroupServ<StorkItmeGroup>
     {
-        private readonly ILogger<UserGroupServ> _logger;
+        private readonly ILogger<StorkItmeGroupServ> _logger;
         private readonly DataContext _context;
         private readonly IStorkItmeServ _storkItmeServ;
 
-        public UserGroupServ(ILogger<UserGroupServ> logger, DataContext context, IStorkItmeServ storkItmeServ) { 
+        public StorkItmeGroupServ(ILogger<StorkItmeGroupServ> logger, DataContext context, IStorkItmeServ storkItmeServ)
+        {
             _logger = logger;
             _context = context;
             _storkItmeServ = storkItmeServ;
@@ -20,34 +21,34 @@ namespace StorkItmeServer.Server
         // ------------------------
         // GET SINGLE
         // ------------------------
-        public UserGroup? Get(int id)
+        public StorkItmeGroup? Get(int id)
         {
             try
             {
-                UserGroup userGroup = _context.UserGroup.FirstOrDefault(x => x.Id == id);
+                StorkItmeGroup StorkItmeGroup = _context.StorkItmeGroup.FirstOrDefault(x => x.Id == id);
 
-                return userGroup == null ? null : userGroup;
+                return StorkItmeGroup == null ? null : StorkItmeGroup;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get UserGroup");
+                ErrorCatch(ex, "Get StorkItmeGroup");
                 return null;
             }
         }
 
-        public UserGroup? Get(string uuid)
+        public StorkItmeGroup? Get(string uuid)
         {
             try
             {
                 if (!Guid.TryParse(uuid, out var guid))
                     return null;
 
-                return _context.UserGroup
+                return _context.StorkItmeGroup
                     .FirstOrDefault(x => x.Uuid == guid);
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Get UserGroup");
+                ErrorCatch(ex, "Get StorkItmeGroup");
                 return null;
             }
         }
@@ -55,13 +56,13 @@ namespace StorkItmeServer.Server
         // ------------------------
         // LISTS (READ ONLY)
         // ------------------------
-        public async Task<List<UserGroup>> GetAll(string userId = "", bool GetAll = false ,bool includeStorkItmes = false, bool includeUsers = false)
+        public async Task<List<StorkItmeGroup>> GetAll(string userId = "", bool GetAll = false, bool includeStorkItmes = false, bool includeUsers = false)
         {
             try
             {
-                IQueryable<UserGroup> query = _context.UserGroup;
+                IQueryable<StorkItmeGroup> query = _context.StorkItmeGroup;
 
-                if(!GetAll)
+                if (!GetAll)
                 {
                     query = query.Where(x => x.Users.Any(u => u.Id == userId));
                 }
@@ -80,42 +81,42 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "GetAll UserGroup");
-                return new List<UserGroup>();
+                ErrorCatch(ex, "GetAll StorkItmeGroup");
+                return new List<StorkItmeGroup>();
             }
         }
 
         // ------------------------
         // CREATE
         // ------------------------
-        public UserGroup? Create(UserGroup userGroup)
+        public StorkItmeGroup? Create(StorkItmeGroup StorkItmeGroup)
         {
             try
             {
-                _context.UserGroup.Add(userGroup);
+                _context.StorkItmeGroup.Add(StorkItmeGroup);
                 _context.SaveChanges();
 
-                return userGroup;
+                return StorkItmeGroup;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Create userGroup");
+                ErrorCatch(ex, "Create StorkItmeGroup");
 
                 return null;
             }
         }
 
-        public UserGroup? CreateWithoutSave(UserGroup userGroup)
+        public StorkItmeGroup? CreateWithoutSave(StorkItmeGroup StorkItmeGroup)
         {
             try
             {
-                _context.UserGroup.Add(userGroup);
+                _context.StorkItmeGroup.Add(StorkItmeGroup);
 
-                return userGroup;
+                return StorkItmeGroup;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Create userGroup");
+                ErrorCatch(ex, "Create StorkItmeGroup");
 
                 return null;
             }
@@ -124,33 +125,33 @@ namespace StorkItmeServer.Server
         // ------------------------
         // UPDATE
         // ------------------------
-        public bool Update(UserGroup userGroup)
+        public bool Update(StorkItmeGroup StorkItmeGroup)
         {
             try
             {
-                _context.UserGroup.Update(userGroup);
+                _context.StorkItmeGroup.Update(StorkItmeGroup);
                 _context.SaveChanges();
 
                 return true;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Updata userGroup");
+                ErrorCatch(ex, "Updata StorkItmeGroup");
 
                 return false;
             }
         }
 
-        public bool UpdateWithoutSave(UserGroup userGroup)
+        public bool UpdateWithoutSave(StorkItmeGroup StorkItmeGroup)
         {
             try
             {
-                _context.UserGroup.Update(userGroup);
+                _context.StorkItmeGroup.Update(StorkItmeGroup);
                 return true;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Update userGroup without save");
+                ErrorCatch(ex, "Update StorkItmeGroup without save");
                 return false;
             }
         }
@@ -158,15 +159,15 @@ namespace StorkItmeServer.Server
         // ------------------------
         // DELETE
         // ------------------------
-        public bool Delete(UserGroup userGroup)
+        public bool Delete(StorkItmeGroup StorkItmeGroup)
         {
             try
             {
-                userGroup.Users.Clear();
+                StorkItmeGroup.Users.Clear();
 
-                _context.StorkItme.RemoveRange(userGroup.StorkItmes);
+                _context.StorkItme.RemoveRange(StorkItmeGroup.StorkItmes);
 
-                _context.UserGroup.Remove(userGroup);
+                _context.StorkItmeGroup.Remove(StorkItmeGroup);
 
                 _context.SaveChanges();
 
@@ -174,7 +175,7 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Delete userGroup");
+                ErrorCatch(ex, "Delete StorkItmeGroup");
                 return false;
             }
         }
@@ -183,17 +184,17 @@ namespace StorkItmeServer.Server
         {
             try
             {
-                var userGroup = await _context.UserGroup
-                    .Include(x => x.Users)
-                    .Include(x => x.StorkItmes)
-                    .FirstOrDefaultAsync(x => x.Id == id);
+                var storkItmeGroup = await _context.StorkItmeGroup
+                .Include(x => x.Users)
+                .Include(x => x.StorkItmes)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-                if (userGroup == null)
+                if (storkItmeGroup == null)
                     return false;
 
-                userGroup.Users.Clear();
-                _context.StorkItme.RemoveRange(userGroup.StorkItmes);
-                _context.UserGroup.Remove(userGroup);
+                storkItmeGroup.Users.Clear();
+                _context.StorkItme.RemoveRange(storkItmeGroup.StorkItmes);
+                _context.StorkItmeGroup.Remove(storkItmeGroup);
 
                 await _context.SaveChangesAsync();
 
@@ -201,21 +202,22 @@ namespace StorkItmeServer.Server
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "DeleteAsync userGroup");
+                ErrorCatch(ex, "DeleteAsync StorkItmeGroup");
                 return false;
             }
+
         }
 
-        public bool DeleteWithoutSave(UserGroup userGroup)
+        public bool DeleteWithoutSave(StorkItmeGroup StorkItmeGroup)
         {
             try
             {
-                _context.UserGroup.Remove(userGroup);
+                _context.StorkItmeGroup.Remove(StorkItmeGroup);
                 return true;
             }
             catch (Exception ex)
             {
-                ErrorCatch(ex, "Delete userGroup without save");
+                ErrorCatch(ex, "Delete StorkItmeGroup without save");
                 return false;
             }
         }

@@ -25,12 +25,12 @@ namespace StorkItmeServer.Controllers
         private readonly ILogger<UserGroupController> _logger;
         private readonly RoleAuthorizationHandler _roleAuthorizationHandler;
 
-        private readonly IUserGroupServ _userGroupServ;
+        private readonly IGroupServ<UserGroup> _userGroupServ;
         private readonly IStorkItmeServ _storkItmeServ;
         private readonly IUserServ _userServ;
 
 
-        public UserGroupController(ILogger<UserGroupController> logger,IUserGroupServ userGroupServ, IStorkItmeServ storkItmeServ, IUserServ userServ)
+        public UserGroupController(ILogger<UserGroupController> logger, IGroupServ<UserGroup> userGroupServ, IStorkItmeServ storkItmeServ, IUserServ userServ)
         {
             _logger = logger;
             _roleAuthorizationHandler = new RoleAuthorizationHandler();
@@ -41,35 +41,30 @@ namespace StorkItmeServer.Controllers
 
         [HttpGet("GetAll")]
         [Authorize(Policy = "Read")]
-        public async Task<IActionResult> GetAll(bool ShowAllGroup = false)
+        public async Task<IActionResult> GetAll(bool showAllGroup = false)
         {
             try
             {
-
                 var user = await _userServ.GetByClaimsPrincipal(User);
-                var userRoles =  UserHelp.Role(User);
-                List<UserGroupDTO> userGroups = new List<UserGroupDTO>();
+                var userRoles = UserHelp.Role(User);
 
-                if (_roleAuthorizationHandler.CheckUserRole("Manager", userRoles) && ShowAllGroup)
-                {
-                    // Retrieve the list of user groups from the database
-                    userGroups = await _userGroupServ.GetAll().Select(gp => new UserGroupDTO(gp)
-                    {
-                        StorkItmes = gp.StorkItmes.Select(s => new StorkItmeDTO(s)).ToList(),
-                        Users = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles) ? gp.Users.Select(u => new UserDTO(u)).ToList() : null,
+                bool isManager = _roleAuthorizationHandler
+                    .CheckUserRole("Manager", userRoles);
 
-                    }).ToListAsync();
-                }
-                else
+                List<UserGroup> groups = await _userGroupServ.GetAll(
+                    userId: user.Id,
+                    GetAll: showAllGroup,
+                    includeStorkItmes: isManager,
+                    includeUsers: isManager
+                );
+
+                var result = groups.Select(g => new UserGroupDTO(g)
                 {
-                    userGroups = user.UserGroups.Select(g => new UserGroupDTO(g)
-                    {
-                        StorkItmes = g.StorkItmes.Select(s => new StorkItmeDTO(s)).ToList(),
-                        Users = _roleAuthorizationHandler.CheckUserRole("Manager", userRoles) ? g.Users.Select(u => new UserDTO(u)).ToList() : null,
-                    }).ToList();
-                }
-  
-                return Ok(userGroups); // Return as JSON response
+                    StorkItmes = g.StorkItmes.Select(s => new StorkItmeDTO(s)).ToList(),
+                    Users = isManager ? g.Users.Select(u => new UserDTO(u)).ToList() : null
+                }).ToList();
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -155,7 +150,7 @@ namespace StorkItmeServer.Controllers
                     userGroup.Name = userGroupFromBody.Name;
                     userGroup.Color=userGroupFromBody.Color;
 
-                   if(_userGroupServ.Updata(userGroup))
+                   if(_userGroupServ.Update(userGroup))
                         return Ok(new UserGroupDTO(userGroup));
                    else
                         return BadRequest();
@@ -188,7 +183,7 @@ namespace StorkItmeServer.Controllers
                 {
                     userGroup.Users.Add(user);
 
-                    if (_userGroupServ.Updata(userGroup))
+                    if (_userGroupServ.Update(userGroup))
                         return Ok();
                     else
                         return BadRequest();
@@ -253,7 +248,7 @@ namespace StorkItmeServer.Controllers
                 {
 
                     userGroup.Users.Remove(user);
-                    if(_userGroupServ.Updata(userGroup))
+                    if(_userGroupServ.Update(userGroup))
                         return Ok();
 
                 }

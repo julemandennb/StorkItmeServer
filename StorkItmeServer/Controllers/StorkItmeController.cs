@@ -20,13 +20,13 @@ namespace StorkItmeServer.Controllers
 
 
         private readonly IStorkItmeServ _storkItmeService;
-        private readonly IUserGroupServ _userGroupService;
+        private readonly IGroupServ<UserGroup> _userGroupService;
 
         public StorkItmeController(
             ILogger<StorkItmeController> logger,
             UserManager<User> userManager,
             IStorkItmeServ storkItmeService,
-            IUserGroupServ userGroupService)
+            IGroupServ<UserGroup> userGroupService)
 
         {
             _logger = logger;

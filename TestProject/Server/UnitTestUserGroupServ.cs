@@ -90,7 +90,7 @@ namespace TestProject.Server
 
             var service = CreateService(context);
 
-            var result = service.GetAll();
+            var result = await service.GetAll("test",true);
 
             Assert.NotNull(result);
 
@@ -159,7 +159,7 @@ namespace TestProject.Server
 
             entity.Name = "updated name";
 
-            var result = service.Updata(entity);
+            var result = service.Update(entity);
 
             var updated = await context.UserGroup.FirstAsync(x => x.Id == entity.Id);
 
