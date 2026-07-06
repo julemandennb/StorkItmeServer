@@ -21,12 +21,14 @@ namespace StorkItmeServer.Controllers
 
         private readonly IStorkItmeServ _storkItmeService;
         private readonly IGroupServ<UserGroup> _userGroupService;
+        private readonly IGroupServ<StorkItmeGroup> _storkItmeGroupService;
 
         public StorkItmeController(
             ILogger<StorkItmeController> logger,
             UserManager<User> userManager,
             IStorkItmeServ storkItmeService,
-            IGroupServ<UserGroup> userGroupService)
+            IGroupServ<UserGroup> userGroupService,
+            IGroupServ<StorkItmeGroup> storkItmeGroupService)
 
         {
             _logger = logger;
@@ -34,6 +36,7 @@ namespace StorkItmeServer.Controllers
             _storkItmeService = storkItmeService;
             _userGroupService = userGroupService;
             _roleAuthorizationHandler = new RoleAuthorizationHandler();
+            _storkItmeGroupService = storkItmeGroupService;
         }
 
         // ------------------------
@@ -129,13 +132,20 @@ namespace StorkItmeServer.Controllers
             try
             {
                 UserGroup? userGroup = null;
+                StorkItmeGroup? storkItmeGroup = null;
 
-                if (dto.UserGroupId.HasValue)
+                if (dto.UserGroupId != null)
                 {
-                    userGroup = _userGroupService.Get(dto.UserGroupId.Value);
-
+                    userGroup = _userGroupService.Get(dto.UserGroupId);
                     if (userGroup == null)
                         return BadRequest("Invalid user group");
+                }
+
+                if (dto.StorkItmeGroupId != null)
+                {
+                    storkItmeGroup = _storkItmeGroupService.Get(dto.StorkItmeGroupId);
+                    if (storkItmeGroup == null)
+                        return BadRequest("Invalid StorkItme group");
                 }
 
                 var item = new StorkItme
@@ -146,6 +156,7 @@ namespace StorkItmeServer.Controllers
                     BestBy = dto.BestBy,
                     Stork = dto.Stork,
                     UserGroupId = userGroup?.Id,
+                    StorkItmeGroupId = storkItmeGroup?.Id,
                     StoreLocation = dto.StoreLocation,
                     ItemNumber = dto.ItemNumber,
                     EAN = dto.EAN
@@ -156,7 +167,7 @@ namespace StorkItmeServer.Controllers
                 if (created == null)
                     return StatusCode(500);
 
-                return Ok(ToDto(created, userGroup));
+                return Ok(ToDto(created, userGroup, storkItmeGroup));
             }
             catch (Exception ex)
             {
@@ -180,6 +191,25 @@ namespace StorkItmeServer.Controllers
                 if (item == null)
                     return NotFound();
 
+  
+                if (dto.UserGroupId != null)
+                {
+                    var userGroup = _userGroupService.Get(dto.UserGroupId);
+                    if (userGroup == null)
+                        return BadRequest("Invalid user group");
+
+                    item.UserGroupId = userGroup.Id;
+                }
+
+                if (dto.StorkItmeGroupId != null)
+                {
+                    var storkItmeGroup = _storkItmeGroupService.Get(dto.StorkItmeGroupId);
+                    if (storkItmeGroup == null)
+                        return BadRequest("Invalid StorkItme group");
+
+                    item.StorkItmeGroupId = storkItmeGroup.Id;
+                }
+
                 item.Name = dto.Name ?? item.Name;
                 item.Description = dto.Description ?? item.Description;
                 item.Type = dto.Type ?? item.Type;
@@ -188,6 +218,8 @@ namespace StorkItmeServer.Controllers
                 item.StoreLocation = dto.StoreLocation ?? item.StoreLocation;
                 item.ItemNumber = dto.ItemNumber ?? item.ItemNumber;
                 item.EAN = dto.EAN ?? item.EAN;
+
+
 
                 var success = await _storkItmeService.UpdateAsync();
 
@@ -233,14 +265,20 @@ namespace StorkItmeServer.Controllers
             return isManager || user.UserGroups.Contains(item.UserGroup);
         }
 
-        private StorkItmeDTO ToDto(StorkItme item, UserGroup? group = null)
+        private StorkItmeDTO ToDto(StorkItme item, UserGroup? group = null, StorkItmeGroup? storkItmeGroup = null)
         {
             var resolvedGroup = group ?? item.UserGroup;
+
+            var resolvedStorkItmeGroup = storkItmeGroup ?? item.StorkItmeGroup;
 
             return new StorkItmeDTO(item)
             {
                 UserGroup = resolvedGroup != null
                     ? new UserGroupDTO(resolvedGroup)
+                    : null,
+
+                storkItmeGroup = resolvedStorkItmeGroup != null
+                    ? new StorkItmeGroupDto(resolvedStorkItmeGroup)
                     : null
             };
         }

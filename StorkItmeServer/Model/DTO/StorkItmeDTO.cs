@@ -26,6 +26,8 @@ namespace StorkItmeServer.Model.DTO
 
         public  UserGroupDTO UserGroup { get; set; }
 
+        public StorkItmeGroupDto storkItmeGroup { get; set; }
+
         public StorkItmeDTO() { }
 
         public StorkItmeDTO(StorkItme storkItme) {

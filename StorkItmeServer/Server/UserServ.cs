@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Controllers;
 using StorkItmeServer.Database;
-using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Model;
 using StorkItmeServer.Server.Interface;
 using System;
@@ -55,6 +56,39 @@ namespace StorkItmeServer.Server
             {
                 ErrorCatch(ex, "Get User by id");
                 return null;
+            }
+        }
+
+
+        public async Task<List<User>> Getall()
+        {
+            try
+            {
+                IQueryable<User> query = _context.Users;
+
+                return await query.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                ErrorCatch(ex, "Get all Users");
+                return new List<User>();
+            }
+        }
+
+        public async Task<List<User>> Getall(List<string> userId)
+        {
+            try
+            {
+                IQueryable<User> query = _context.Users;
+
+                query = query.Where(x => userId.Contains(x.Id));
+
+                return await query.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                ErrorCatch(ex, "Get all Users");
+                return new List<User>();
             }
         }
 

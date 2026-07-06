@@ -12,7 +12,9 @@
 
         public int Stork { get; set; }
 
-        public int ?UserGroupId { get; set; }
+        public string ?UserGroupId { get; set; }
+
+        public string? StorkItmeGroupId { get; set; }
 
         public string StoreLocation { get; set; } = "";
 

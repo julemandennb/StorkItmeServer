@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 
 namespace StorkItmeServer.Model
 {
@@ -21,7 +22,5 @@ namespace StorkItmeServer.Model
         public virtual ICollection<StorkItme> StorkItmes { get; set; } = new List<StorkItme>();
 
         public virtual ICollection<User> Users { get; set; } = new List<User>();
-
-
     }
 }

@@ -53,7 +53,8 @@ namespace TestProject
             return new List<User>
             {
                 new User { UserName = "User1", Email = "user1@test.dk" },
-                new User { UserName = "User2", Email = "user2@test.dk" }
+                new User { UserName = "User2", Email = "user2@test.dk" },
+                new User { UserName = "User3", Email = "user3@test.dk" }
             };
         }
 

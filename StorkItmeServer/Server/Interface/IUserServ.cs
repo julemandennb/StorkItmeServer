@@ -10,6 +10,10 @@ namespace StorkItmeServer.Server.Interface
 
         public Task<User?> GetByEmail(string email);
 
+        public Task<List<User>> Getall();
+
+        public Task<List<User>> Getall(List<string> userId);
+
         public Task<User?> GetByClaimsPrincipal(ClaimsPrincipal userClaimsPrincipal);
 
         public Task<IdentityResult?> Create(User user, string password);
