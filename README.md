@@ -3,14 +3,14 @@
 Lightweight ASP.NET Core Web API for managing "StorkItme" items, user groups and authentication/authorization.
 
 Tech stack
-- .NET 8 (net8.0)
+- .NET 10 (net10.0)
 - ASP.NET Core Web API
 - Entity Framework Core (Npgsql for PostgreSQL)
 - ASP.NET Core Identity (with role-based policies)
 - Swagger for API exploration
 
 Prerequisites
-- .NET 8 SDK installed
+- .NET 10 SDK installed
 - PostgreSQL (or use your own connection string compatible with Npgsql)
 
 Configuration

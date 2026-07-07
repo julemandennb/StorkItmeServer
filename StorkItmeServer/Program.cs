@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.OpenApi.Models;
+//using Microsoft.OpenApi.Models;
 using StorkItmeServer.Database;
 using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Model;
@@ -12,6 +12,7 @@ using StorkItmeServer.Overrides;
 using StorkItmeServer.Server;
 using StorkItmeServer.Server.Interface;
 using Swashbuckle.AspNetCore.Filters;
+using Microsoft.OpenApi;
 
 namespace StorkItmeServer
 {
