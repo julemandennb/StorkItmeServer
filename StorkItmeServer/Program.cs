@@ -84,45 +84,43 @@ namespace StorkItmeServer
             app.UseCors("AllowAllOrigins");
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
+           // if (app.Environment.IsDevelopment())
+           // {
                 app.UseSwagger();
                 app.UseSwaggerUI();
-
                 app.ApplyMigrations();
-            }
+            // }
 
 
 
             //app.MapIdentityApi<User>();
 
 
-           /* app.MapIdentityApiFilterable<User,Role>(new IdentityApiEndpointRouteBuilderOptions()
-            {
-                ExcludeRegisterPost = false,
-                ExcludeLoginPost = false,
-                ExcludeRefreshPost = false,
-                ExcludeConfirmEmailGet = false,
-                ExcludeResendConfirmationEmailPost = false,
-                ExcludeForgotPasswordPost = false,
-                ExcludeResetPasswordPost = false,
-                // setting ExcludeManageGroup to false will disable
-                // 2FA and both Info Actions
-                ExcludeManageGroup = false,
-                Exclude2faPost = false,
-                ExcludegInfoGet = false,
-                ExcludeInfoPost = false,
+            /* app.MapIdentityApiFilterable<User,Role>(new IdentityApiEndpointRouteBuilderOptions()
+             {
+                 ExcludeRegisterPost = false,
+                 ExcludeLoginPost = false,
+                 ExcludeRefreshPost = false,
+                 ExcludeConfirmEmailGet = false,
+                 ExcludeResendConfirmationEmailPost = false,
+                 ExcludeForgotPasswordPost = false,
+                 ExcludeResetPasswordPost = false,
+                 // setting ExcludeManageGroup to false will disable
+                 // 2FA and both Info Actions
+                 ExcludeManageGroup = false,
+                 Exclude2faPost = false,
+                 ExcludegInfoGet = false,
+                 ExcludeInfoPost = false,
 
-            });*/
+             });*/
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
-
 
             app.MapControllers();
 
-            
 
 
             using (var scope = app.Services.CreateScope())
