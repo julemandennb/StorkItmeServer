@@ -23,12 +23,13 @@ namespace TestProject.Server
         private UserServ CreateUserServ(
             DataContext context,
             Mock<UserManager<User>> userManager,
-            Mock<RoleManager<Role>> roleManager)
+            Mock<RoleManager<Role>> roleManager,
+            Mock<SignInManager<User>>? signInManagerMock = null)
         {
             var logger = new Mock<ILogger<UserServ>>();
             var emailSender = new Mock<IEmailSender<User>>();
 
-            var signInManager = new Mock<SignInManager<User>>(
+            var signInManager = signInManagerMock ?? new Mock<SignInManager<User>>(
                 userManager.Object,
                 new HttpContextAccessor(),
                 new Mock<IUserClaimsPrincipalFactory<User>>().Object,
@@ -400,6 +401,142 @@ namespace TestProject.Server
             var result = await service.GeneratePasswordResetTokenAsync(user);
 
             Assert.Equal("reset-token", result);
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_ShouldReturnSuccess_WhenNoPasswordChange()
+        {
+            using var context = _setDataBaseUp.Up("UpdateNoPwd");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var dto = new StorkItmeServer.FromBody.User.UserFromUpdateBody { Password = "old", NewPassword = null };
+
+            var result = await service.UpdateUserAsync(user, dto);
+
+            Assert.True(result.Succeeded);
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_ShouldReturnFailed_WhenChangePasswordFails()
+        {
+            using var context = _setDataBaseUp.Up("UpdatePwdFail");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+            userManager.Setup(x => x.ChangePasswordAsync(user, "old", "newpwd")).ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "bad" }));
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var dto = new StorkItmeServer.FromBody.User.UserFromUpdateBody { Password = "old", NewPassword = "newpwd" };
+
+            var result = await service.UpdateUserAsync(user, dto);
+
+            Assert.False(result.Succeeded);
+        }
+
+        [Fact]
+        public async Task CheckPassword_ReturnsFalse_WhenUserNullOrPasswordEmpty()
+        {
+            using var context = _setDataBaseUp.Up("CheckPwd");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            Assert.False(await service.CheckPassword(null, "pwd"));
+            Assert.False(await service.CheckPassword(context.Users.First(), ""));
+        }
+
+        [Fact]
+        public async Task CheckPassword_ReturnsTrue_WhenUserManagerReturnsTrue()
+        {
+            using var context = _setDataBaseUp.Up("CheckPwd2");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager.Setup(x => x.CheckPasswordAsync(user, "pwd")).ReturnsAsync(true);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            Assert.True(await service.CheckPassword(user, "pwd"));
+        }
+
+        [Fact]
+        public async Task EmailPasswordSignIn_UserNotFound_ReturnsFailed()
+        {
+            using var context = _setDataBaseUp.Up("SignIn1");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            userManager.Setup(x => x.FindByEmailAsync("noone@test.com")).ReturnsAsync((User?)null);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.EmailPasswordSignInAsync("noone@test.com", "pwd", false, true, false);
+
+            Assert.False(result.Succeeded);
+        }
+
+        [Fact]
+        public async Task EmailPasswordSignIn_PasswordSignInSuccess_ReturnsSuccess()
+        {
+            using var context = _setDataBaseUp.Up("SignIn2");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var signInManager = new Mock<SignInManager<User>>(userManager.Object, new HttpContextAccessor(), new Mock<IUserClaimsPrincipalFactory<User>>().Object, null, null, null, null);
+
+            var user = context.Users.First();
+
+            userManager.Setup(x => x.FindByEmailAsync(user.Email)).ReturnsAsync(user);
+            signInManager.Setup(x => x.PasswordSignInAsync(user, "pwd", false, false)).ReturnsAsync(SignInResult.Success);
+
+            var service = CreateUserServ(context, userManager, roleManager, signInManager);
+
+            var result = await service.EmailPasswordSignInAsync(user.Email, "pwd", false, true, false);
+
+            Assert.True(result.Succeeded);
+        }
+
+        [Fact]
+        public async Task EmailPasswordSignIn_TwoFactor_WithCode_ReturnsSuccess()
+        {
+            using var context = _setDataBaseUp.Up("SignIn3");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var signInManager = new Mock<SignInManager<User>>(userManager.Object, new HttpContextAccessor(), new Mock<IUserClaimsPrincipalFactory<User>>().Object, null, null, null, null);
+
+            var user = context.Users.First();
+
+            userManager.Setup(x => x.FindByEmailAsync(user.Email)).ReturnsAsync(user);
+            signInManager.Setup(x => x.PasswordSignInAsync(user, "pwd", false, false)).ReturnsAsync(SignInResult.TwoFactorRequired);
+            signInManager.Setup(x => x.TwoFactorAuthenticatorSignInAsync("123456", false, It.IsAny<bool>())).ReturnsAsync(SignInResult.Success);
+
+            var service = CreateUserServ(context, userManager, roleManager, signInManager);
+
+            var result = await service.EmailPasswordSignInAsync(user.Email, "pwd", false, true, false, "123456", "");
+
+            Assert.True(result.Succeeded);
         }
     }
 }

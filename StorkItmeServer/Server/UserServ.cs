@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Controllers;
@@ -321,10 +322,17 @@ namespace StorkItmeServer.Server
 
         public async Task<IdentityResult> UpdateUserAsync(User user, UserFromUpdateBody dto)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-
+            IDbContextTransaction? transaction = null;
             try
             {
+                // Only start a transaction when the provider supports transactions. The InMemory provider does not,
+                // and BeginTransactionAsync will raise a warning which may be treated as an error in tests.
+                var providerName = _context.Database.ProviderName ?? string.Empty;
+                if (!providerName.Contains("InMemory", StringComparison.OrdinalIgnoreCase))
+                {
+                    transaction = await _context.Database.BeginTransactionAsync();
+                }
+
                 if (!string.IsNullOrEmpty(dto.UserName))
                 {
                     user.UserName = dto.UserName;
@@ -345,7 +353,7 @@ namespace StorkItmeServer.Server
 
                 if (!result.Succeeded)
                 {
-                    await transaction.RollbackAsync();
+                    if (transaction != null) await transaction.RollbackAsync();
                     return result;
                 }
 
@@ -360,12 +368,12 @@ namespace StorkItmeServer.Server
 
                     if (!result.Succeeded)
                     {
-                        await transaction.RollbackAsync();
+                        if (transaction != null) await transaction.RollbackAsync();
                         return result;
                     }
                 }
 
-                await transaction.CommitAsync();
+                if (transaction != null) await transaction.CommitAsync();
 
                 return IdentityResult.Success;
             }
@@ -375,6 +383,10 @@ namespace StorkItmeServer.Server
                 return IdentityResult.Failed(
                     new IdentityError { Description = "Update failed" }
                 );
+            }
+            finally
+            {
+                if (transaction != null) await transaction.DisposeAsync();
             }
         }
 
