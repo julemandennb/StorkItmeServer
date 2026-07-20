@@ -1,5 +1,6 @@
 ﻿
 
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
@@ -8,19 +9,20 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 using StorkItmeServer.AuthorizationHandler;
+using StorkItmeServer.FromBody.StorkItme;
+using StorkItmeServer.FromBody.User;
 using StorkItmeServer.Model;
+using StorkItmeServer.Model.DTO;
+using StorkItmeServer.Server;
+using StorkItmeServer.Server.Interface;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Security.Claims;
-using System.Text.Encodings.Web;
 using System.Text;
-using Microsoft.AspNetCore.Authentication.BearerToken;
-using System;
-using Microsoft.Extensions.Options;
-using StorkItmeServer.Server.Interface;
-using StorkItmeServer.Server;
-using StorkItmeServer.Model.DTO;
+using System.Text.Encodings.Web;
 
 namespace StorkItmeServer.Controllers
 {
@@ -145,19 +147,7 @@ namespace StorkItmeServer.Controllers
             var isPersistent = (useCookies == true) && (useSessionCookies != true);
             _signInManager.AuthenticationScheme = useCookieScheme ? IdentityConstants.ApplicationScheme : IdentityConstants.BearerScheme;
 
-            var result = await _signInManager.PasswordSignInAsync(login.Email, login.Password, isPersistent, lockoutOnFailure: true);
-
-            if (result.RequiresTwoFactor)
-            {
-                if (!string.IsNullOrEmpty(login.TwoFactorCode))
-                {
-                    result = await _signInManager.TwoFactorAuthenticatorSignInAsync(login.TwoFactorCode, isPersistent, rememberClient: isPersistent);
-                }
-                else if (!string.IsNullOrEmpty(login.TwoFactorRecoveryCode))
-                {
-                    result = await _signInManager.TwoFactorRecoveryCodeSignInAsync(login.TwoFactorRecoveryCode);
-                }
-            }
+            var result = await _userServ.EmailPasswordSignInAsync(login.Email, login.Password, isPersistent, useCookieScheme, lockoutOnFailure: true, login.TwoFactorCode, login.TwoFactorRecoveryCode);
 
             if (!result.Succeeded)
             {
@@ -303,6 +293,54 @@ namespace StorkItmeServer.Controllers
             }
 
         }
+
+
+        [HttpPut("info")]
+        [Authorize(Policy = "Read")]
+        public async Task<IActionResult> infoPut([FromBody] UserFromUpdateBody dto)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(dto.Password))
+                {
+                    return BadRequest("Password is required");
+                }
+
+                var user = await _userServ.GetByClaimsPrincipal(User);
+
+                if (user is not null)
+                {
+                    var passwordCheck = await _userServ.CheckPassword(user, dto.Password);
+                    if (!passwordCheck)
+                    {
+                        return StatusCode(500, "Password is not correct");
+                    }
+
+                    var result = await _userServ.UpdateUserAsync(user, dto);
+
+
+                    if (!result.Succeeded)
+                    {
+                        return BadRequest(result.Errors);
+                    }
+
+                    return Ok(new
+                    {
+                        message = "Profile updated successfully"
+                    });
+
+                }
+
+                return StatusCode(500, "No user find");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving user groups.");
+                return StatusCode(500, "Internal server error");
+            }
+
+        }
+
 
         [HttpPost("logout")]
         public void Logud()

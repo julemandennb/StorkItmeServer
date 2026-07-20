@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.Controllers;
 using StorkItmeServer.Database;
+using StorkItmeServer.FromBody.User;
 using StorkItmeServer.Model;
 using StorkItmeServer.Server.Interface;
 using System;
@@ -40,6 +41,48 @@ namespace StorkItmeServer.Server
             _timeProvider = timeProvider;
             _bearerTokenOptions = optionsMonitor;
 
+        }
+
+        public async Task<SignInResult> EmailPasswordSignInAsync(string email, string password, bool isPersistent,bool useCookieScheme,
+            bool lockoutOnFailure,string TwoFactorCode = "",string TwoFactorRecoveryCode = "")
+        {
+            var user = await GetByEmail(email);
+
+            if (user == null)
+            {
+                return SignInResult.Failed;
+            }
+
+            _signInManager.AuthenticationScheme = useCookieScheme ? IdentityConstants.ApplicationScheme : IdentityConstants.BearerScheme;
+
+
+            var result =  await _signInManager.PasswordSignInAsync(
+                user,
+                password,
+                isPersistent,
+                lockoutOnFailure
+            );
+
+            if (result.RequiresTwoFactor)
+            {
+                if (!string.IsNullOrEmpty(TwoFactorCode))
+                {
+                    result = await _signInManager.TwoFactorAuthenticatorSignInAsync(TwoFactorCode, isPersistent, rememberClient: isPersistent);
+                }
+                else if (!string.IsNullOrEmpty(TwoFactorRecoveryCode))
+                {
+                    result = await _signInManager.TwoFactorRecoveryCodeSignInAsync(TwoFactorRecoveryCode);
+                }
+            }
+
+            return result;
+        }
+        public async Task<bool> CheckPassword(User user, string password)
+        {
+            if (user == null || string.IsNullOrEmpty(password))
+                return false;
+
+            return await _userManager.CheckPasswordAsync(user, password);
         }
 
 
@@ -275,6 +318,66 @@ namespace StorkItmeServer.Server
         {
             return _userManager.ErrorDescriber.InvalidToken();
         }
+
+        public async Task<IdentityResult> UpdateUserAsync(User user, UserFromUpdateBody dto)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                if (!string.IsNullOrEmpty(dto.UserName))
+                {
+                    user.UserName = dto.UserName;
+                }
+
+                if(!string.IsNullOrEmpty(dto.Email))
+                {
+                    user.Email = dto.Email;
+                }
+
+                if (!string.IsNullOrEmpty(dto.PhoneNumber))
+                {
+                    user.PhoneNumber = dto.PhoneNumber;
+                }
+
+
+                var result = await _userManager.UpdateAsync(user);
+
+                if (!result.Succeeded)
+                {
+                    await transaction.RollbackAsync();
+                    return result;
+                }
+
+
+                if (!string.IsNullOrEmpty(dto.NewPassword))
+                {
+                    result = await _userManager.ChangePasswordAsync(
+                        user,
+                        dto.Password,
+                        dto.NewPassword
+                    );
+
+                    if (!result.Succeeded)
+                    {
+                        await transaction.RollbackAsync();
+                        return result;
+                    }
+                }
+
+                await transaction.CommitAsync();
+
+                return IdentityResult.Success;
+            }
+            catch (Exception ex)
+            {
+                ErrorCatch(ex, "Update User");
+                return IdentityResult.Failed(
+                    new IdentityError { Description = "Update failed" }
+                );
+            }
+        }
+
 
 
         private void ErrorCatch(Exception ex, string funName)

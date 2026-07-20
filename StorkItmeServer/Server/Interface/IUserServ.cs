@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using StorkItmeServer.FromBody.User;
 using StorkItmeServer.Model;
 using System.Security.Claims;
 
@@ -6,6 +7,11 @@ namespace StorkItmeServer.Server.Interface
 {
     public interface IUserServ
     {
+        public Task<SignInResult> EmailPasswordSignInAsync(string email, string password, bool isPersistent, bool useCookieScheme,
+            bool lockoutOnFailure, string TwoFactorCode = "", string TwoFactorRecoveryCode = "");
+
+        public Task<bool> CheckPassword(User user, string password);
+
         public Task<User?> Get(string id);
 
         public Task<User?> GetByEmail(string email);
@@ -37,6 +43,8 @@ namespace StorkItmeServer.Server.Interface
         public Task<IList<string>> GetRoles(User user);
 
         public IdentityError ErrorDescriberInvalidToken();
+
+        public Task<IdentityResult> UpdateUserAsync(User user, UserFromUpdateBody dto);
 
     }
 }
