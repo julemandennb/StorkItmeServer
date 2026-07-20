@@ -21,8 +21,7 @@ namespace StorkItmeServer.Model.DTO
             Uuid = group.Uuid;
             Name = group.Name;
             Description = group.Description;
-            Users = group.Users.Select(u => new UserDTO(u)).ToList();
-            StorkItmes = group.StorkItmes.Select(s => new StorkItmeDTO(s)).ToList();
+           
         }
     }
 }
