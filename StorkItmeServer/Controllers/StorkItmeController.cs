@@ -192,7 +192,7 @@ namespace StorkItmeServer.Controllers
                     return NotFound();
 
   
-                if (dto.UserGroupId != null)
+                if (dto.UserGroupId != null && dto.UserGroupId != "")
                 {
                     var userGroup = _userGroupService.Get(dto.UserGroupId);
                     if (userGroup == null)
@@ -200,14 +200,22 @@ namespace StorkItmeServer.Controllers
 
                     item.UserGroupId = userGroup.Id;
                 }
+                else
+                {
+                    item.UserGroupId = null;
+                }
 
-                if (dto.StorkItmeGroupId != null)
+                if (dto.StorkItmeGroupId != null && dto.StorkItmeGroupId != "")
                 {
                     var storkItmeGroup = _storkItmeGroupService.Get(dto.StorkItmeGroupId);
                     if (storkItmeGroup == null)
                         return BadRequest("Invalid StorkItme group");
 
                     item.StorkItmeGroupId = storkItmeGroup.Id;
+                }
+                else
+                {
+                    item.StorkItmeGroupId = null;
                 }
 
                 item.Name = dto.Name ?? item.Name;
