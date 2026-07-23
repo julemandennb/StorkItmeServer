@@ -12,7 +12,7 @@ namespace StorkItmeServer.Model.DTO
 
         public string Type { get; set; }
 
-        public DateTime BestBy { get; set; }
+        public DateOnly BestBy { get; set; }
 
         public int Stork { get; set; }
 

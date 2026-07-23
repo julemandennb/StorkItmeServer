@@ -49,7 +49,7 @@ namespace StorkItmeServer.Controllers
 
         [HttpGet("GetAll")]
         [Authorize(Policy = "Read")]
-        public async Task<IActionResult> GetAll(bool showAllGroup = false)
+        public async Task<IActionResult> GetAll(bool showAllGroup = false,bool includeStorkItmes = false, bool includeUsers = false)
         {
             try
             {
@@ -59,17 +59,23 @@ namespace StorkItmeServer.Controllers
                 bool isManager = _roleAuthorizationHandler
                     .CheckUserRole("Manager", userRoles);
 
+                if (!isManager)
+                {
+                    showAllGroup = false;
+                    includeUsers = false;
+                }
+
                 List<StorkItmeGroup> groups = await _StorkItmeGroupServ.GetAll(
                     userId: user.Id,
                     GetAll: showAllGroup,
-                    includeStorkItmes: isManager,
-                    includeUsers: isManager
+                    includeStorkItmes: includeStorkItmes,
+                    includeUsers: includeUsers
                 );
 
                 var result = groups.Select(g => new StorkItmeGroupDto(g)
                 {
-                    StorkItmes = g.StorkItmes.Select(s => new StorkItmeDTO(s)).ToList(),
-                    Users = isManager ? g.Users.Select(u => new UserDTO(u)).ToList() : null
+                    StorkItmes = includeStorkItmes ? g.StorkItmes.Select(s => new StorkItmeDTO(s)).ToList(): null,
+                    Users = includeUsers ? g.Users.Select(u => new UserDTO(u)).ToList() : null
                 }).ToList();
 
                 return Ok(result);

@@ -223,8 +223,11 @@ namespace TestProject.Server
 
             var result = await service.GetAllNotExpiredAsync();
 
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+
             Assert.All(result, x =>
-                Assert.True(x.BestBy >= DateTime.UtcNow)
+                Assert.True(x.BestBy >= today)
             );
         }
 
@@ -234,9 +237,10 @@ namespace TestProject.Server
             using var context = _setDataBaseUp.Up("NotExpired_Exclude");
 
             var service = CreateService(context);
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
             var expired = context.StorkItme
-                .Where(x => x.BestBy < DateTime.UtcNow)
+                .Where(x => x.BestBy < today)
                 .ToList();
 
             var result = await service.GetAllNotExpiredAsync();
@@ -257,6 +261,9 @@ namespace TestProject.Server
 
             var now = DateTime.UtcNow;
 
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var intreeDays = today.AddDays(3);
+
             context.StorkItme.Add(new StorkItme
             {
                 Name = "valid",
@@ -264,7 +271,7 @@ namespace TestProject.Server
                 Description = "Test",
                 Type = "TestType",
                 Stork = 1,
-                BestBy = now.AddDays(3)
+                BestBy = intreeDays
             });
 
             await context.SaveChangesAsync();
@@ -281,7 +288,9 @@ namespace TestProject.Server
 
             var service = CreateService(context);
 
-            var now = DateTime.UtcNow;
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var inDays = today.AddDays(20);
+
 
             context.StorkItme.Add(new StorkItme
             {
@@ -290,7 +299,7 @@ namespace TestProject.Server
                 Type = "type",
                 UserGroupId = 1,
                 Stork = 1,
-                BestBy = now.AddDays(20)
+                BestBy = inDays
             });
 
             await context.SaveChangesAsync();
@@ -312,13 +321,15 @@ namespace TestProject.Server
 
             var service = CreateService(context);
 
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+   
             var item = new StorkItme
             {
                 UserGroupId = 1,
                 Name = "test item",
                 Description = "desc",
                 Type = "type",
-                BestBy = DateTime.UtcNow,
+                BestBy = today,
                 Stork = 1
             };
 
@@ -337,12 +348,15 @@ namespace TestProject.Server
 
             var before = await context.StorkItme.CountAsync();
 
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+
             await service.CreateAsync(new StorkItme
             {
                 UserGroupId = 1,
                 Name = "created item",
                 Stork = 1,
-                BestBy = DateTime.UtcNow,
+                BestBy = today,
                 Description = "desc",
                 Type = "type"
             });
@@ -358,13 +372,15 @@ namespace TestProject.Server
             using var context = _setDataBaseUp.Up("Create_Uuid");
 
             var service = CreateService(context);
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
 
             var result = await service.CreateAsync(new StorkItme
             {
                 UserGroupId = 1,
                 Name = "uuid test item",
                 Stork = 1,
-                BestBy = DateTime.UtcNow,
+                BestBy = today,
                 Description = "desc",
                 Type = "type"
             });

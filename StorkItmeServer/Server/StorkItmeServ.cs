@@ -115,13 +115,13 @@ namespace StorkItmeServer.Server
             HashSet<int>? groupIds = null,
             HashSet<int>? storkItmeGroupIds = null)
         {
-            var now = UtcNow;
-            var inSevenDays = now.AddDays(7);
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var inSevenDays = today.AddDays(7);
 
             var query = ApplyGroupFilter(BaseQuery(), groupIds, storkItmeGroupIds);
 
             return await query
-                .Where(x => x.BestBy >= now && x.BestBy <= inSevenDays)
+                .Where(x => x.BestBy >= today && x.BestBy <= inSevenDays)
                 .OrderBy(x => x.Id)
                 .ToListAsync();
         }
@@ -130,12 +130,12 @@ namespace StorkItmeServer.Server
             HashSet<int>? groupIds = null,
             HashSet<int>? storkItmeGroupIds = null)
         {
-            var now = UtcNow;
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
             var query = ApplyGroupFilter(BaseQuery(), groupIds, storkItmeGroupIds);
 
             return await query
-                .Where(x => x.BestBy >= now)
+                .Where(x => x.BestBy >= today)
                 .OrderBy(x => x.Id)
                 .ToListAsync();
         }

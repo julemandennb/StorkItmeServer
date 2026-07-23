@@ -134,14 +134,14 @@ namespace StorkItmeServer.Controllers
                 UserGroup? userGroup = null;
                 StorkItmeGroup? storkItmeGroup = null;
 
-                if (dto.UserGroupId != null)
+                if (dto.UserGroupId != null && dto.UserGroupId != "")
                 {
                     userGroup = _userGroupService.Get(dto.UserGroupId);
                     if (userGroup == null)
                         return BadRequest("Invalid user group");
                 }
 
-                if (dto.StorkItmeGroupId != null)
+                if (dto.StorkItmeGroupId != null && dto.StorkItmeGroupId != "")
                 {
                     storkItmeGroup = _storkItmeGroupService.Get(dto.StorkItmeGroupId);
                     if (storkItmeGroup == null)

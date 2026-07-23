@@ -82,6 +82,10 @@ namespace TestProject
         {
             DateTime now = DateTime.UtcNow;
 
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var inDays = today.AddYears(1);
+            var minusDays = today.AddYears(-1);
+
             return new List<StorkItme>
             {
                 new StorkItme
@@ -89,7 +93,7 @@ namespace TestProject
                     UserGroupId = 1,
                     Name = "den har id 1",
                     Stork = 1,
-                    BestBy = now.AddYears(1),
+                    BestBy = inDays,
                     Description = "den har id 1",
                     Type = "fefs",
                     ImgUrl = "",
@@ -100,7 +104,7 @@ namespace TestProject
                     UserGroupId = 1,
                     Name = "den har id 2",
                     Stork = 1,
-                    BestBy = now.AddYears(1),
+                    BestBy = inDays,
                     Description = "den har id 2",
                     Type = "fefs",
                     ImgUrl = "",
@@ -111,7 +115,7 @@ namespace TestProject
                     UserGroupId = 1,
                     Name = "den har id 3",
                     Stork = 1,
-                    BestBy = now.AddDays(-1),
+                    BestBy = minusDays,
                     Description = "den har id 3",
                     Type = "fefs",
                     ImgUrl = "",
@@ -122,7 +126,7 @@ namespace TestProject
                     UserGroupId = 2,
                     Name = "den har id 4",
                     Stork = 1,
-                    BestBy = now.AddDays(1),
+                    BestBy = inDays,
                     Description = "den har id 4",
                     Type = "fefs",
                     ImgUrl = "",
