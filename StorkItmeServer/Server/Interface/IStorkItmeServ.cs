@@ -38,7 +38,8 @@ namespace StorkItmeServer.Server.Interface
         // UPDATE
         // --------------------
 
-        Task<bool> UpdateAsync();
+        // Returns a tuple: Success flag and optional error message when Success is false
+        Task<(bool Success, string? ErrorMessage)> UpdateAsync();
 
         // --------------------
         // DELETE

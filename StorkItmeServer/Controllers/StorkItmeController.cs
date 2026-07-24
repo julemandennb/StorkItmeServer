@@ -162,6 +162,21 @@ namespace StorkItmeServer.Controllers
                     EAN = dto.EAN
                 };
 
+                // Check uniqueness for ItemNumber and EAN before creating
+                if (!string.IsNullOrWhiteSpace(item.ItemNumber))
+                {
+                    var existing = await _storkItmeService.GetFromItemNumberAsync(item.ItemNumber);
+                    if (existing != null)
+                        return BadRequest("Item number is already in use");
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.EAN))
+                {
+                    var existingEan = await _storkItmeService.GetFromEANAsync(item.EAN);
+                    if (existingEan != null)
+                        return BadRequest("EAN is already in use");
+                }
+
                 var created = await _storkItmeService.CreateAsync(item);
 
                 if (created == null)
@@ -224,19 +239,37 @@ namespace StorkItmeServer.Controllers
                 item.BestBy = dto.BestBy ?? item.BestBy;
                 item.Stork = dto.Stork ?? item.Stork;
                 item.StoreLocation = dto.StoreLocation ?? item.StoreLocation;
-                item.ItemNumber = dto.ItemNumber ?? item.ItemNumber;
-                item.EAN = dto.EAN ?? item.EAN;
+
+                // Validate uniqueness for ItemNumber when changed
+                if (!string.IsNullOrWhiteSpace(dto.ItemNumber) && dto.ItemNumber != item.ItemNumber)
+                {
+                    var existing = await _storkItmeService.GetFromItemNumberAsync(dto.ItemNumber);
+                    if (existing != null && existing.Id != item.Id)
+                        return BadRequest("Item number is already in use");
+
+                    item.ItemNumber = dto.ItemNumber;
+                }
+
+                // Validate uniqueness for EAN when changed
+                if (!string.IsNullOrWhiteSpace(dto.EAN) && dto.EAN != item.EAN)
+                {
+                    var existingEan = await _storkItmeService.GetFromEANAsync(dto.EAN);
+                    if (existingEan != null && existingEan.Id != item.Id)
+                        return BadRequest("EAN is already in use");
+
+                    item.EAN = dto.EAN;
+                }
 
 
 
-                var success = await _storkItmeService.UpdateAsync();
+                var (success, errorMessage) = await _storkItmeService.UpdateAsync();
 
-                return success ? Ok() : StatusCode(500);
+                return success ? Ok() : StatusCode(500, errorMessage);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Update");
-                return StatusCode(500);
+                return StatusCode(500,ex);
             }
         }
 

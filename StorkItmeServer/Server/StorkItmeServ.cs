@@ -161,17 +161,18 @@ namespace StorkItmeServer.Server
         // ------------------------
         // UPDATE (TRACKED ENTITY ONLY)
         // ------------------------
-        public async Task<bool> UpdateAsync()
+        // Returns (Success, ErrorMessage). ErrorMessage is non-null when Success is false.
+        public async Task<(bool Success, string? ErrorMessage)> UpdateAsync()
         {
             try
             {
                 await _context.SaveChangesAsync();
-                return true;
+                return (true, null);
             }
             catch (Exception ex)
             {
                 LogError(ex, "Update storkItme");
-                return false;
+                return (false, ex.Message);
             }
         }
 

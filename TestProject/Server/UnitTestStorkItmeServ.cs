@@ -411,11 +411,11 @@ namespace TestProject.Server
 
             tracked!.Name = dto.Name;
 
-            var result = await service.UpdateAsync();
+            var (success, errorMessage) = await service.UpdateAsync();
 
             var updated = await context.StorkItme.FirstAsync(x => x.Id == entity.Id);
 
-            Assert.True(result);
+            Assert.True(success);
             Assert.Equal("updated name", updated.Name);
         }
 
