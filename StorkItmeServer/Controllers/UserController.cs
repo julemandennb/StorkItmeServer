@@ -294,6 +294,100 @@ namespace StorkItmeServer.Controllers
 
         }
 
+        [HttpGet("getUser")]
+        [Authorize(Policy = "Member")]
+        public async Task<IActionResult> get(string uuid)
+        {
+            try
+            {
+                var user = await _userServ.Get(uuid);
+
+                if (user is not null)
+                {
+                    var roleName = await _userServ.GetRoles(user);
+                    if (roleName.Count > 0)
+                    {
+                        Role role = await _roleManager.FindByNameAsync(roleName.FirstOrDefault());
+
+                        UserDTO userDTO = new UserDTO(user);
+
+                        userDTO.Role = new RoleDTO(role);
+
+                        userDTO.UserGroups = user.UserGroups.Select(x => new UserGroupDTO(x)).ToList();
+
+                        userDTO.StorkItmeGroups = user.StorkItmeGroups.Select(x => new StorkItmeGroupDto(x)).ToList();
+
+                        return Ok(userDTO);
+                    }
+
+                    return StatusCode(500, "No role find");
+                }
+
+                return StatusCode(500, "No user find");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving user groups.");
+                return StatusCode(500, "Internal server error");
+            }
+
+        }
+
+
+        [HttpPut("updateUser")]
+        [Authorize(Policy = "Member")]
+        public async Task<IActionResult> update(string uuid, [FromBody] UserFromUpdateBody dto)
+        {
+            try
+            {
+                var user = await _userServ.Get(uuid);
+                var loginUser = await _userServ.GetByClaimsPrincipal(User);
+
+                if (user is not null && loginUser is not null)
+                {
+                    var roleName = await _userServ.GetRoles(user);
+
+                    var loginRoleName = await _userServ.GetRoles(loginUser);
+
+                    if (roleName.Count > 0 && loginRoleName.Count > 0)
+                    {
+                        Role role = await _roleManager.FindByNameAsync(roleName.FirstOrDefault());
+
+                        Role loginRole = await _roleManager.FindByNameAsync(loginRoleName.FirstOrDefault());
+
+                        if (_roleAuthorizationHandler.CheckUserRole(role.Name, loginRole.Name))
+                        {
+
+                            var result = await _userServ.UpdateUserAsync(user, dto);
+
+
+                            if (!result.Succeeded)
+                            {
+                                return BadRequest(result.Errors);
+                            }
+
+                            return Ok(new
+                            {
+                                message = "user updated successfully"
+                            });
+
+
+                        }
+                    }
+
+                    return StatusCode(500, "No role find");
+                }
+
+                return StatusCode(500, "No user find");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving user groups.");
+                return StatusCode(500, "Internal server error");
+            }
+
+        }
+
 
         [HttpPut("info")]
         [Authorize(Policy = "Read")]
