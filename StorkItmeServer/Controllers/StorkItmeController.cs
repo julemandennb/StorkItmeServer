@@ -264,7 +264,7 @@ namespace StorkItmeServer.Controllers
 
                 var (success, errorMessage) = await _storkItmeService.UpdateAsync();
 
-                return success ? Ok() : StatusCode(500, errorMessage);
+                return success ? Ok(ToDto(item)) : StatusCode(500, errorMessage);
             }
             catch (Exception ex)
             {

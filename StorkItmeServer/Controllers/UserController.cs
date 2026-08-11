@@ -333,6 +333,47 @@ namespace StorkItmeServer.Controllers
 
         }
 
+        [HttpGet("GetAllUser")]
+        [Authorize(Policy = "Manager")]
+        public async Task<IActionResult> getAll(bool includeUserGroups = false, bool includeStorkItmeGroups = false, bool includeRole = false)
+        {
+            try
+            {
+                var users = await _userServ.Getall();
+                if (users is not null)
+                {
+                    var result = new List<UserDTO>();
+                    foreach (var user in users)
+                    {
+                        var roleName = await _userServ.GetRoles(user);
+                        if (roleName.Count > 0)
+                        {
+                           
+                            UserDTO userDTO = new UserDTO(user);
+                            if (includeRole)
+                            {
+                                Role role = await _roleManager.FindByNameAsync(roleName.FirstOrDefault());
+                                userDTO.Role = new RoleDTO(role);
+                            }
+                            else
+                            {
+                                userDTO.Role = null;
+                            }
+                            userDTO.UserGroups = includeUserGroups ? user.UserGroups.Select(x => new UserGroupDTO(x)).ToList() : [];
+                            userDTO.StorkItmeGroups = includeStorkItmeGroups ? user.StorkItmeGroups.Select(x => new StorkItmeGroupDto(x)).ToList(): [];
+                            result.Add(userDTO);
+                        }
+                    }
+                    return Ok(result);
+                }
+                return StatusCode(500, "No users find");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving users.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
 
         [HttpPut("updateUser")]
         [Authorize(Policy = "Member")]
