@@ -155,7 +155,7 @@ namespace StorkItmeServer.Controllers
 
         [HttpPut("Updata")]
         [Authorize(Policy = "Manager")]
-        public IActionResult Updata([FromBody] StorkItmeGroupFromBody storkItmeGroupFromBody, int id)
+        public IActionResult Updata([FromBody] StorkItmeGroupFromBody storkItmeGroupFromBody, string id)
         {
             try
             {

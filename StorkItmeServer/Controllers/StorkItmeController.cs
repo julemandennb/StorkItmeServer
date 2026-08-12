@@ -134,14 +134,17 @@ namespace StorkItmeServer.Controllers
                 UserGroup? userGroup = null;
                 StorkItmeGroup? storkItmeGroup = null;
 
-                if (dto.UserGroupId != null && dto.UserGroupId != "")
+                string role = UserHelp.Role(User);
+                var isManager = _roleAuthorizationHandler.CheckUserRole("Manager", role);
+
+                if (dto.UserGroupId != null && dto.UserGroupId != "" && isManager)
                 {
                     userGroup = _userGroupService.Get(dto.UserGroupId);
                     if (userGroup == null)
                         return BadRequest("Invalid user group");
                 }
 
-                if (dto.StorkItmeGroupId != null && dto.StorkItmeGroupId != "")
+                if (dto.StorkItmeGroupId != null && dto.StorkItmeGroupId != "" && isManager)
                 {
                     storkItmeGroup = _storkItmeGroupService.Get(dto.StorkItmeGroupId);
                     if (storkItmeGroup == null)
@@ -201,13 +204,17 @@ namespace StorkItmeServer.Controllers
         {
             try
             {
+
+                string role = UserHelp.Role(User);
+                var isManager = _roleAuthorizationHandler.CheckUserRole("Manager", role);
+
                 var item = await _storkItmeService.GetTrackedAsync(uuid);
 
                 if (item == null)
                     return NotFound();
 
   
-                if (dto.UserGroupId != null && dto.UserGroupId != "")
+                if (dto.UserGroupId != null && dto.UserGroupId != "" && isManager)
                 {
                     var userGroup = _userGroupService.Get(dto.UserGroupId);
                     if (userGroup == null)
@@ -215,12 +222,12 @@ namespace StorkItmeServer.Controllers
 
                     item.UserGroupId = userGroup.Id;
                 }
-                else
+                else if((dto.UserGroupId == null || dto.UserGroupId == "")  && isManager)
                 {
                     item.UserGroupId = null;
                 }
 
-                if (dto.StorkItmeGroupId != null && dto.StorkItmeGroupId != "")
+                if (dto.StorkItmeGroupId != null && dto.StorkItmeGroupId != "" && isManager)
                 {
                     var storkItmeGroup = _storkItmeGroupService.Get(dto.StorkItmeGroupId);
                     if (storkItmeGroup == null)
@@ -228,7 +235,7 @@ namespace StorkItmeServer.Controllers
 
                     item.StorkItmeGroupId = storkItmeGroup.Id;
                 }
-                else
+                else  if ((dto.StorkItmeGroupId == null || dto.StorkItmeGroupId == "") && isManager)
                 {
                     item.StorkItmeGroupId = null;
                 }

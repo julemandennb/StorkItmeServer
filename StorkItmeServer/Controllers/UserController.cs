@@ -95,7 +95,7 @@ namespace StorkItmeServer.Controllers
             return TypedResults.Ok();
         }
 
-        [HttpGet("confirmEmail")]
+        [HttpGet("user/confirmEmail")]
         public async Task<Results<ContentHttpResult, UnauthorizedHttpResult>> confirmEmail([FromBody] string userId, [FromQuery] string code, [FromQuery] string? changedEmail) 
         {
             if (await _userServ.Get(userId) is not { } user)
@@ -180,7 +180,7 @@ namespace StorkItmeServer.Controllers
             return TypedResults.SignIn(newPrincipal, authenticationScheme: IdentityConstants.BearerScheme);
         }
 
-        [HttpPost("resendConfirmationEmail")]
+        [HttpPost("user/resendConfirmationEmail")]
         public async Task<Ok>  resendConfirmationEmail
         ([FromBody] ResendConfirmationEmailRequest resendRequest)
         {
@@ -294,7 +294,7 @@ namespace StorkItmeServer.Controllers
 
         }
 
-        [HttpGet("getUser")]
+        [HttpGet("user/get")]
         [Authorize(Policy = "Member")]
         public async Task<IActionResult> get(string uuid)
         {
@@ -333,7 +333,7 @@ namespace StorkItmeServer.Controllers
 
         }
 
-        [HttpGet("GetAllUser")]
+        [HttpGet("user/GetAll")]
         [Authorize(Policy = "Manager")]
         public async Task<IActionResult> getAll(bool includeUserGroups = false, bool includeStorkItmeGroups = false, bool includeRole = false)
         {
@@ -375,7 +375,7 @@ namespace StorkItmeServer.Controllers
             }
         }
 
-        [HttpPut("updateUser")]
+        [HttpPut("user/update")]
         [Authorize(Policy = "Member")]
         public async Task<IActionResult> update(string uuid, [FromBody] UserFromUpdateBody dto)
         {
