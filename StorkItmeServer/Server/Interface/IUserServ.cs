@@ -24,7 +24,11 @@ namespace StorkItmeServer.Server.Interface
 
         public Task<IdentityResult?> Create(User user, string password);
 
+        public Task<IdentityResult?> Update(User user, string password = null);
+
         public Task<bool> AddToRole(User user, string role);
+
+        public Task<IdentityResult> SetRole(User user, string newRole);
 
         public Task<string> GenerateEmailConfirmationTokenAsync(User user);
 
@@ -44,7 +48,7 @@ namespace StorkItmeServer.Server.Interface
 
         public IdentityError ErrorDescriberInvalidToken();
 
-        public Task<IdentityResult> UpdateUserAsync(User user, UserFromUpdateBody dto);
+        public Task<IdentityResult> UpdateUserAsync(User user, UserFromUpdateFromUserBody dto);
 
     }
 }

@@ -417,7 +417,7 @@ namespace TestProject.Server
 
             var service = CreateUserServ(context, userManager, roleManager);
 
-            var dto = new StorkItmeServer.FromBody.User.UserFromUpdateBody { Password = "old", NewPassword = null };
+            var dto = new StorkItmeServer.FromBody.User.UserFromUpdateFromUserBody { Password = "old", NewPassword = null };
 
             var result = await service.UpdateUserAsync(user, dto);
 
@@ -439,7 +439,7 @@ namespace TestProject.Server
 
             var service = CreateUserServ(context, userManager, roleManager);
 
-            var dto = new StorkItmeServer.FromBody.User.UserFromUpdateBody { Password = "old", NewPassword = "newpwd" };
+            var dto = new StorkItmeServer.FromBody.User.UserFromUpdateFromUserBody { Password = "old", NewPassword = "newpwd" };
 
             var result = await service.UpdateUserAsync(user, dto);
 

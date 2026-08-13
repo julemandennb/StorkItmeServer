@@ -64,6 +64,11 @@ namespace StorkItmeServer.AuthorizationHandler
             return false;
         }
 
+        public bool CheckRoleExists(string role)
+        {
+            return Array.Exists(this.roleHierarchy, r => r == role);
+        }
+
 
     }
 

@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using StorkItmeServer.AuthorizationHandler;
 using StorkItmeServer.FromBody.StorkItme;
 using StorkItmeServer.FromBody.User;
+using StorkItmeServer.Help;
 using StorkItmeServer.Model;
 using StorkItmeServer.Model.DTO;
 using StorkItmeServer.Server;
@@ -95,7 +96,7 @@ namespace StorkItmeServer.Controllers
             return TypedResults.Ok();
         }
 
-        [HttpGet("user/confirmEmail")]
+        [HttpGet("confirmEmail")]
         public async Task<Results<ContentHttpResult, UnauthorizedHttpResult>> confirmEmail([FromBody] string userId, [FromQuery] string code, [FromQuery] string? changedEmail) 
         {
             if (await _userServ.Get(userId) is not { } user)
@@ -375,64 +376,188 @@ namespace StorkItmeServer.Controllers
             }
         }
 
+        [HttpPost("user/create")]
+        [Authorize(Policy = "Manager")]
+        public async Task<IActionResult> Create([FromBody] UserFromBody dto)
+        {
+            try
+            {
+
+                string role = UserHelp.Role(User);
+
+                var isAdmin = _roleAuthorizationHandler.CheckUserRole("Admin", role);
+
+                if(!isAdmin)
+                {
+                    if(dto.Role == "Admin" || dto.Role == "Manager")
+                    {
+                        return StatusCode(403, "You are not authorized to create a user with this role");
+                    }
+                }
+
+                if (!_roleAuthorizationHandler.CheckRoleExists(role))
+                {
+                    return StatusCode(500, "Role don't exists");
+                }
+
+
+                if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Password) || string.IsNullOrEmpty(dto.ConfirmPassword))
+                {
+                    return BadRequest("Email, Password and ConfirmPassword are required");
+                }
+
+                if(dto.Password != dto.ConfirmPassword)
+                {
+                    return BadRequest("Password and ConfirmPassword do not match");
+                }
+
+                User user = new User
+                {
+                    Email = dto.Email,
+                    UserName = dto.UserName
+                };
+
+                var result = await _userServ.Create(user, dto.Password);
+
+                if (!result.Succeeded)
+                {
+                    return StatusCode(500, "Error creating user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
+
+                await _userServ.AddToRole(user, dto.Role);
+
+
+                // Generate email confirmation token
+                var token = await _userServ.GenerateEmailConfirmationTokenAsync(user);
+                var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+                // Create confirmation link
+                var confirmationLink = Url.Action(
+                    action: "confirmEmail",
+                    controller: null,
+                    values: new { userId = user.Id, code = encodedToken },
+                    protocol: Request.Scheme);
+
+                // Send confirmation email
+                await SendConfirmationEmailAsync(dto.Email, confirmationLink);
+
+
+                UserDTO userDTO = new UserDTO(user);
+
+                return Ok(userDTO);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while Create user.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         [HttpPut("user/update")]
-        [Authorize(Policy = "Member")]
-        public async Task<IActionResult> update(string uuid, [FromBody] UserFromUpdateBody dto)
+        [Authorize(Policy = "Manager")]
+        public async Task<IActionResult> Update(
+            string uuid,
+            [FromBody] UserFromUpdateBody dto)
         {
             try
             {
                 var user = await _userServ.Get(uuid);
                 var loginUser = await _userServ.GetByClaimsPrincipal(User);
 
-                if (user is not null && loginUser is not null)
+                if (user is null || loginUser is null)
+                    return StatusCode(500, "No user found");
+
+                var roleNames = await _userServ.GetRoles(user);
+
+                if (roleNames.Count == 0)
+                    return StatusCode(500, "No role found");
+
+                if (dto.Password is not null &&
+                    dto.Password != dto.ConfirmPassword)
                 {
-                    var roleName = await _userServ.GetRoles(user);
-
-                    var loginRoleName = await _userServ.GetRoles(loginUser);
-
-                    if (roleName.Count > 0 && loginRoleName.Count > 0)
-                    {
-                        Role role = await _roleManager.FindByNameAsync(roleName.FirstOrDefault());
-
-                        Role loginRole = await _roleManager.FindByNameAsync(loginRoleName.FirstOrDefault());
-
-                        if (_roleAuthorizationHandler.CheckUserRole(role.Name, loginRole.Name))
-                        {
-
-                            var result = await _userServ.UpdateUserAsync(user, dto);
-
-
-                            if (!result.Succeeded)
-                            {
-                                return BadRequest(result.Errors);
-                            }
-
-                            return Ok(new
-                            {
-                                message = "user updated successfully"
-                            });
-
-
-                        }
-                    }
-
-                    return StatusCode(500, "No role find");
+                    return BadRequest("Password and ConfirmPassword do not match");
                 }
 
-                return StatusCode(500, "No user find");
+                string currentRole = UserHelp.Role(User);
+
+                var isAdmin =
+                    _roleAuthorizationHandler.CheckUserRole("Admin", currentRole);
+
+                if (!isAdmin)
+                {
+                    if (roleNames[0] == "Admin" ||
+                        roleNames[0] == "Manager" ||
+                        dto.Role == "Admin" ||
+                        dto.Role == "Manager")
+                    {
+                        return StatusCode(
+                            403,
+                            "You are not authorized to update a user with this role");
+                    }
+                }
+
+                user.Email = dto.Email ?? user.Email;
+                user.UserName = dto.UserName ?? user.UserName;
+
+                // Change role
+                if (!string.IsNullOrWhiteSpace(dto.Role))
+                {
+                    var roleResult =
+                        await _userServ.SetRole(user, dto.Role);
+
+                    if (!roleResult.Succeeded)
+                    {
+                        return BadRequest(new
+                        {
+                            message = "Failed to update role",
+                            errors = roleResult.Errors
+                        });
+                    }
+                }
+
+                // Change password
+                if (!string.IsNullOrWhiteSpace(dto.Password))
+                {
+                    var passwordResult =
+                        await _userServ.Update(user, dto.Password);
+
+                    if (!passwordResult.Succeeded)
+                    {
+                        return BadRequest(new
+                        {
+                            message = "Failed to update password",
+                            errors = passwordResult.Errors
+                        });
+                    }
+                }
+
+                // Update email/username
+                var updateResult = await _userServ.Update(user);
+
+                if (!updateResult.Succeeded)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Failed to update user",
+                        errors = updateResult.Errors
+                    });
+                }
+
+                return Ok(new
+                {
+                    message = "User updated successfully"
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving user groups.");
+                _logger.LogError(ex, "An error occurred while updating user.");
                 return StatusCode(500, "Internal server error");
             }
-
         }
-
 
         [HttpPut("info")]
         [Authorize(Policy = "Read")]
-        public async Task<IActionResult> infoPut([FromBody] UserFromUpdateBody dto)
+        public async Task<IActionResult> infoPut([FromBody] UserFromUpdateFromUserBody dto)
         {
             try
             {

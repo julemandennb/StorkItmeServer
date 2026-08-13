@@ -182,6 +182,38 @@ namespace StorkItmeServer.Server
             }
         }
 
+        //test is not make to this
+        public async Task<IdentityResult?> Update(User user,string password = null)
+        {
+            try
+            {
+                if (password is not null)
+                {
+                    var removeResult =
+                        await _userManager.RemovePasswordAsync(user);
+
+                    if (!removeResult.Succeeded)
+                        return removeResult;
+
+                    var passwordResult =
+                        await _userManager.AddPasswordAsync(user, password);
+
+                    if (!passwordResult.Succeeded)
+                        return passwordResult;
+                }
+
+                IdentityResult identityResult = await _userManager.UpdateAsync(user);
+
+                return identityResult;
+
+            }
+            catch (Exception ex)
+            {
+                ErrorCatch(ex, "Update User");
+                return IdentityResult.Failed(new IdentityError { Description = "An error occurred while Update the user." });
+            }
+        }
+
         public async Task<bool> AddToRole(User user,string role)
         {
             try
@@ -194,6 +226,36 @@ namespace StorkItmeServer.Server
             {
                 ErrorCatch(ex, "add role to User");
                 return false;
+            }
+        }
+
+        //test is not make to this
+        public async Task<IdentityResult> SetRole(User user, string newRole)
+        {
+            try
+            {
+                var currentRoles = await _userManager.GetRolesAsync(user);
+
+                if (currentRoles.Count > 0)
+                {
+                    var removeResult =
+                        await _userManager.RemoveFromRolesAsync(user, currentRoles);
+
+                    if (!removeResult.Succeeded)
+                        return removeResult;
+                }
+
+                return await _userManager.AddToRoleAsync(user, newRole);
+            }
+            catch (Exception ex)
+            {
+                ErrorCatch(ex, "Set User Role");
+
+                return IdentityResult.Failed(
+                    new IdentityError
+                    {
+                        Description = "An error occurred while updating the user role."
+                    });
             }
         }
 
@@ -320,7 +382,7 @@ namespace StorkItmeServer.Server
             return _userManager.ErrorDescriber.InvalidToken();
         }
 
-        public async Task<IdentityResult> UpdateUserAsync(User user, UserFromUpdateBody dto)
+        public async Task<IdentityResult> UpdateUserAsync(User user, UserFromUpdateFromUserBody dto)
         {
             IDbContextTransaction? transaction = null;
             try
