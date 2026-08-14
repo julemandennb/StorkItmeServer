@@ -933,5 +933,86 @@ namespace TestProject.Server
                     "An error occurred while updating the user role.");
         }
 
+        [Fact]
+        public async Task DeleteAsync_ShouldReturnTrue_WhenDeleteSucceeds()
+        {
+            using var context = _setDataBaseUp.Up("Delete");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager
+                .Setup(x => x.DeleteAsync(user))
+                .ReturnsAsync(IdentityResult.Success);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.DeleteAsync(user);
+
+            Assert.True(result);
+
+            userManager.Verify(
+                x => x.DeleteAsync(user),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldReturnFalse_WhenExceptionOccurs()
+        {
+            using var context = _setDataBaseUp.Up("DeleteException");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager
+                .Setup(x => x.DeleteAsync(user))
+                .ThrowsAsync(new Exception("Database error"));
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.DeleteAsync(user);
+
+            Assert.False(result);
+
+            userManager.Verify(
+                x => x.DeleteAsync(user),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldReturnFalse_WhenDeleteFails()
+        {
+            using var context = _setDataBaseUp.Up("DeleteFailed");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            var failure = IdentityResult.Failed(
+                new IdentityError
+                {
+                    Description = "Delete failed"
+                });
+
+            userManager
+                .Setup(x => x.DeleteAsync(user))
+                .ReturnsAsync(failure);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.DeleteAsync(user);
+
+            Assert.False(result);
+
+            userManager.Verify(
+                x => x.DeleteAsync(user),
+                Times.Once);
+        }
+
     }
 }

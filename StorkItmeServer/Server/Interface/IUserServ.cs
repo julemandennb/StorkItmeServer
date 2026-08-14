@@ -50,5 +50,7 @@ namespace StorkItmeServer.Server.Interface
 
         public Task<IdentityResult> UpdateUserAsync(User user, UserFromUpdateFromUserBody dto);
 
+        public Task<bool> DeleteAsync(User user);
+
     }
 }

@@ -608,6 +608,53 @@ namespace StorkItmeServer.Controllers
             _signInManager.SignOutAsync();
         }
 
+        [HttpDelete("user/delete")]
+        [Authorize(Policy = "Manager")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            try
+            {
+                var user = await _userServ.Get(id);
+                var loginUser = await _userServ.GetByClaimsPrincipal(User);
+
+                if (user is null || loginUser is null)
+                    return StatusCode(500, "No user found");
+
+                var roleNames = await _userServ.GetRoles(user);
+
+                if (roleNames.Count == 0)
+                    return StatusCode(500, "No role found");
+
+                string currentRole = UserHelp.Role(User);
+
+                var isAdmin =
+                    _roleAuthorizationHandler.CheckUserRole("Admin", currentRole);
+
+                if (!isAdmin)
+                {
+                    if (roleNames[0] == "Admin" ||
+                        roleNames[0] == "Manager")
+                    {
+                        return StatusCode(
+                            403,
+                            "You are not authorized to update a user with this role");
+                    }
+                }
+
+                var deleted = await _userServ.DeleteAsync(user);
+
+                if (!deleted)
+                    return StatusCode(500, "Could not delete user");
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while delete user.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
 
 
         private static ValidationProblem CreateValidationProblem(IdentityResult result)

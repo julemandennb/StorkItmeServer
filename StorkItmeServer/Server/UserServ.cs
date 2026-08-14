@@ -451,6 +451,20 @@ namespace StorkItmeServer.Server
         }
 
 
+        public async Task<bool> DeleteAsync(User user)
+        {
+            try
+            {
+                var result = await _userManager.DeleteAsync(user);
+
+                return result.Succeeded;
+            }
+            catch (Exception ex)
+            {
+                ErrorCatch(ex, "DeleteAsync user");
+                return false;
+            }
+        }
 
         private void ErrorCatch(Exception ex, string funName)
         {
