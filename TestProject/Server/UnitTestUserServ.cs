@@ -538,5 +538,400 @@ namespace TestProject.Server
 
             Assert.True(result.Succeeded);
         }
+
+        [Fact]
+        public async Task Update_ShouldUpdateUser_WhenNoPasswordProvided()
+        {
+            using var context = _setDataBaseUp.Up("UpdateNoPassword");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager
+                .Setup(x => x.UpdateAsync(user))
+                .ReturnsAsync(IdentityResult.Success);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.Update(user);
+
+            Assert.NotNull(result);
+            Assert.True(result!.Succeeded);
+
+            userManager.Verify(
+                x => x.UpdateAsync(user),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.RemovePasswordAsync(It.IsAny<User>()),
+                Times.Never);
+
+            userManager.Verify(
+                x => x.AddPasswordAsync(It.IsAny<User>(), It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Update_ShouldChangePasswordAndUpdateUser_WhenPasswordProvided()
+        {
+            using var context = _setDataBaseUp.Up("UpdateWithPassword");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager
+                .Setup(x => x.RemovePasswordAsync(user))
+                .ReturnsAsync(IdentityResult.Success);
+
+            userManager
+                .Setup(x => x.AddPasswordAsync(user, "NewPassword123!"))
+                .ReturnsAsync(IdentityResult.Success);
+
+            userManager
+                .Setup(x => x.UpdateAsync(user))
+                .ReturnsAsync(IdentityResult.Success);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.Update(user, "NewPassword123!");
+
+            Assert.NotNull(result);
+            Assert.True(result!.Succeeded);
+
+            userManager.Verify(
+                x => x.RemovePasswordAsync(user),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.AddPasswordAsync(user, "NewPassword123!"),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.UpdateAsync(user),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Update_ShouldReturnFailure_WhenRemovePasswordFails()
+        {
+            using var context = _setDataBaseUp.Up("UpdateRemovePasswordFail");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            var failure = IdentityResult.Failed(
+                new IdentityError { Description = "Could not remove password" });
+
+            userManager
+                .Setup(x => x.RemovePasswordAsync(user))
+                .ReturnsAsync(failure);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.Update(user, "NewPassword123!");
+
+            Assert.NotNull(result);
+            Assert.False(result!.Succeeded);
+
+            userManager.Verify(
+                x => x.RemovePasswordAsync(user),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.AddPasswordAsync(It.IsAny<User>(), It.IsAny<string>()),
+                Times.Never);
+
+            userManager.Verify(
+                x => x.UpdateAsync(It.IsAny<User>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Update_ShouldReturnFailure_WhenAddPasswordFails()
+        {
+            using var context = _setDataBaseUp.Up("UpdateAddPasswordFail");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager
+                .Setup(x => x.RemovePasswordAsync(user))
+                .ReturnsAsync(IdentityResult.Success);
+
+            var failure = IdentityResult.Failed(
+                new IdentityError { Description = "Could not add password" });
+
+            userManager
+                .Setup(x => x.AddPasswordAsync(user, "NewPassword123!"))
+                .ReturnsAsync(failure);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.Update(user, "NewPassword123!");
+
+            Assert.NotNull(result);
+            Assert.False(result!.Succeeded);
+
+            userManager.Verify(
+                x => x.RemovePasswordAsync(user),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.AddPasswordAsync(user, "NewPassword123!"),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.UpdateAsync(It.IsAny<User>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Update_ShouldReturnFailure_WhenUpdateAsyncFails()
+        {
+            using var context = _setDataBaseUp.Up("UpdateUserFail");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            var failure = IdentityResult.Failed(
+                new IdentityError { Description = "Update failed" });
+
+            userManager
+                .Setup(x => x.UpdateAsync(user))
+                .ReturnsAsync(failure);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.Update(user);
+
+            Assert.NotNull(result);
+            Assert.False(result!.Succeeded);
+
+            userManager.Verify(
+                x => x.UpdateAsync(user),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Update_ShouldReturnFailure_WhenExceptionOccurs()
+        {
+            using var context = _setDataBaseUp.Up("UpdateException");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager
+                .Setup(x => x.UpdateAsync(user))
+                .ThrowsAsync(new Exception("Database error"));
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.Update(user);
+
+            Assert.NotNull(result);
+            Assert.False(result!.Succeeded);
+
+            Assert.Contains(
+                result.Errors,
+                x => x.Description == "An error occurred while Update the user.");
+        }
+
+        [Fact]
+        public async Task SetRole_ShouldAddRole_WhenUserHasNoRoles()
+        {
+            using var context = _setDataBaseUp.Up("SetRoleNoRoles");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager
+                .Setup(x => x.GetRolesAsync(user))
+                .ReturnsAsync(new List<string>());
+
+            userManager
+                .Setup(x => x.AddToRoleAsync(user, "Admin"))
+                .ReturnsAsync(IdentityResult.Success);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.SetRole(user, "Admin");
+
+            Assert.True(result.Succeeded);
+
+            userManager.Verify(
+                x => x.GetRolesAsync(user),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.RemoveFromRolesAsync(
+                    It.IsAny<User>(),
+                    It.IsAny<IEnumerable<string>>()),
+                Times.Never);
+
+            userManager.Verify(
+                x => x.AddToRoleAsync(user, "Admin"),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task SetRole_ShouldRemoveOldRolesAndAddNewRole()
+        {
+            using var context = _setDataBaseUp.Up("SetRoleExisting");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            var currentRoles = new List<string>
+            {
+                "User",
+                "Moderator"
+            };
+
+            userManager
+                .Setup(x => x.GetRolesAsync(user))
+                .ReturnsAsync(currentRoles);
+
+            userManager
+                .Setup(x => x.RemoveFromRolesAsync(user, currentRoles))
+                .ReturnsAsync(IdentityResult.Success);
+
+            userManager
+                .Setup(x => x.AddToRoleAsync(user, "Admin"))
+                .ReturnsAsync(IdentityResult.Success);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.SetRole(user, "Admin");
+
+            Assert.True(result.Succeeded);
+
+            userManager.Verify(
+                x => x.GetRolesAsync(user),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.RemoveFromRolesAsync(user, currentRoles),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.AddToRoleAsync(user, "Admin"),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task SetRole_ShouldReturnFailure_WhenRemovingRolesFails()
+        {
+            using var context = _setDataBaseUp.Up("SetRoleRemoveFail");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            var currentRoles = new List<string>
+            {
+                "User"
+            };
+
+            var failure = IdentityResult.Failed(
+                new IdentityError { Description = "Remove role failed" });
+
+            userManager
+                .Setup(x => x.GetRolesAsync(user))
+                .ReturnsAsync(currentRoles);
+
+            userManager
+                .Setup(x => x.RemoveFromRolesAsync(user, currentRoles))
+                .ReturnsAsync(failure);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.SetRole(user, "Admin");
+
+            Assert.False(result.Succeeded);
+
+            userManager.Verify(
+                x => x.RemoveFromRolesAsync(user, currentRoles),
+                Times.Once);
+
+            userManager.Verify(
+                x => x.AddToRoleAsync(It.IsAny<User>(), It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task SetRole_ShouldReturnFailure_WhenAddingNewRoleFails()
+        {
+            using var context = _setDataBaseUp.Up("SetRoleAddFail");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager
+                .Setup(x => x.GetRolesAsync(user))
+                .ReturnsAsync(new List<string>());
+
+            var failure = IdentityResult.Failed(
+                new IdentityError { Description = "Add role failed" });
+
+            userManager
+                .Setup(x => x.AddToRoleAsync(user, "Admin"))
+                .ReturnsAsync(failure);
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.SetRole(user, "Admin");
+
+            Assert.False(result.Succeeded);
+
+            userManager.Verify(
+                x => x.AddToRoleAsync(user, "Admin"),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task SetRole_ShouldReturnFailure_WhenExceptionOccurs()
+        {
+            using var context = _setDataBaseUp.Up("SetRoleException");
+
+            var userManager = MockUserManager();
+            var roleManager = MockRoleManager();
+
+            var user = context.Users.First();
+
+            userManager
+                .Setup(x => x.GetRolesAsync(user))
+                .ThrowsAsync(new Exception("Database error"));
+
+            var service = CreateUserServ(context, userManager, roleManager);
+
+            var result = await service.SetRole(user, "Admin");
+
+            Assert.False(result.Succeeded);
+
+            Assert.Contains(
+                result.Errors,
+                x => x.Description ==
+                    "An error occurred while updating the user role.");
+        }
+
     }
 }

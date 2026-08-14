@@ -182,7 +182,6 @@ namespace StorkItmeServer.Server
             }
         }
 
-        //test is not make to this
         public async Task<IdentityResult?> Update(User user,string password = null)
         {
             try
@@ -229,7 +228,6 @@ namespace StorkItmeServer.Server
             }
         }
 
-        //test is not make to this
         public async Task<IdentityResult> SetRole(User user, string newRole)
         {
             try
